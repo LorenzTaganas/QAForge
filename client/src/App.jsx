@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import { useAuth } from './context/AuthContext'
@@ -36,10 +36,40 @@ const boardColumns = [
   },
 ]
 
-const navItems = ['Overview', 'Requirements', 'Test Cases', 'Runs', 'Bugs', 'Reports', 'Settings']
+const navItems = [
+  { label: 'Overview', path: '/' },
+  { label: 'Requirements', path: '/requirements' },
+  { label: 'Test Cases', path: '/requirements' },
+  { label: 'Runs', path: '/requirements' },
+  { label: 'Bugs', path: '/requirements' },
+  { label: 'Reports', path: '/requirements' },
+  { label: 'Settings', path: '/requirements' },
+]
+
+const requirements = [
+  { id: 'REQ-104', title: 'User login flow validation', owner: 'QA Lead', priority: 'High', status: 'Approved' },
+  { id: 'REQ-112', title: 'Checkout error handling', owner: 'QA Tester', priority: 'Medium', status: 'In Review' },
+  { id: 'REQ-118', title: 'Password reset automation', owner: 'Developer', priority: 'High', status: 'Blocked' },
+  { id: 'REQ-129', title: 'Reporting dashboard filters', owner: 'PM', priority: 'Low', status: 'Draft' },
+  { id: 'REQ-134', title: 'Role-based access checks', owner: 'Security', priority: 'High', status: 'Approved' },
+]
+
+const requirementPriorityStyles = {
+  High: 'text-rose-300',
+  Medium: 'text-amber-300',
+  Low: 'text-emerald-300',
+}
+
+const requirementStatusStyles = {
+  Approved: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  'In Review': 'border-amber-500/30 bg-amber-500/10 text-amber-200',
+  Blocked: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  Draft: 'border-slate-600 bg-slate-800 text-slate-300',
+}
 
 const HomePage = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-[#101827] text-slate-100">
@@ -81,13 +111,14 @@ const HomePage = () => {
             <div className="space-y-2">
               {navItems.map((item, index) => (
                 <button
-                  key={item}
+                  key={item.label}
                   type="button"
+                  onClick={() => navigate(item.path)}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
                     index === 0 ? 'bg-sky-500/10 text-sky-200 ring-1 ring-sky-500/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <span>{item}</span>
+                  <span>{item.label}</span>
                 </button>
               ))}
             </div>
@@ -188,6 +219,106 @@ const HomePage = () => {
   )
 }
 
+const RequirementsPage = () => {
+  const navigate = useNavigate()
+
+  return (
+    <div className="min-h-screen bg-[#101827] text-slate-100">
+      <div className="flex min-h-screen flex-col">
+        <header className="flex items-center justify-between border-b border-slate-800 bg-[#111827] px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')} className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-500/10 text-sm font-bold text-sky-300">
+              Q
+            </button>
+            <div className="text-sm font-medium text-slate-200">QAForge</div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300">
+              Search
+            </button>
+            <button className="rounded-md bg-sky-500 px-3 py-1.5 text-sm font-medium text-slate-950">
+              + New requirement
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 flex-col lg:flex-row">
+          <aside className="w-full border-b border-slate-800 bg-[#0f172a] p-4 lg:w-64 lg:border-b-0 lg:border-r">
+            <div className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-400">Workspaces</div>
+            <div className="space-y-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
+                    item.label === 'Requirements' ? 'bg-sky-500/10 text-sky-200 ring-1 ring-sky-500/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="flex-1 bg-[#0b1220] p-4 md:p-6">
+            <div className="rounded-xl border border-slate-800 bg-[#111827] p-4 shadow-[0_18px_50px_rgba(2,6,23,0.5)]">
+              <div className="flex flex-col gap-4 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.22em] text-slate-400">Project scope</div>
+                  <h1 className="mt-2 text-3xl font-bold text-white">Requirements</h1>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300">
+                    Filter
+                  </button>
+                  <button className="rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-slate-950">
+                    + Add requirement
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-xl border border-slate-800">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-950/80 text-slate-300">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">ID</th>
+                      <th className="px-4 py-3 font-medium">Requirement</th>
+                      <th className="px-4 py-3 font-medium">Owner</th>
+                      <th className="px-4 py-3 font-medium">Priority</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {requirements.map((requirement) => (
+                      <tr key={requirement.id} className="border-t border-slate-800 bg-slate-900/70">
+                        <td className="px-4 py-3 font-medium text-sky-300">{requirement.id}</td>
+                        <td className="px-4 py-3 text-slate-200">{requirement.title}</td>
+                        <td className="px-4 py-3 text-slate-300">{requirement.owner}</td>
+                        <td className={`px-4 py-3 font-medium ${requirementPriorityStyles[requirement.priority]}`}>
+                          {requirement.priority}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${requirementStatusStyles[requirement.status]}`}>
+                            {requirement.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const { user, loading } = useAuth()
 
@@ -207,6 +338,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requirements"
+        element={
+          <ProtectedRoute>
+            <RequirementsPage />
           </ProtectedRoute>
         }
       />

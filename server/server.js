@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const morgan = require('morgan')
+const authRoutes = require('./routes/authRoutes')
 
 dotenv.config()
 
@@ -19,6 +20,8 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   })
 })
+
+app.use('/api/auth', authRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

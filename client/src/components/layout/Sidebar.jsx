@@ -1,25 +1,27 @@
 import React from 'react'
 import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
-
-const navItems = [
-  { label: 'Overview', path: '/', icon: LayoutGrid },
-  { label: 'Requirements', path: '/requirements', icon: FileText },
-  { label: 'Test Cases', path: '/test-cases', icon: CheckSquare },
-  { label: 'Bugs', path: '/bugs', icon: Bug },
-  { label: 'Reports', path: '/reports', icon: BarChart3 },
-  { label: 'Settings', path: '/settings', icon: Settings },
-]
+import { useQA } from '../../context/QAContext'
 
 const Sidebar = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { tasks, requirements, testCases, bugs } = useQA()
+
+  const navItems = [
+    { label: 'Overview', path: '/', icon: LayoutGrid, count: tasks.length },
+    { label: 'Requirements', path: '/requirements', icon: FileText, count: requirements.length },
+    { label: 'Test Cases', path: '/test-cases', icon: CheckSquare, count: testCases.length },
+    { label: 'Bugs', path: '/bugs', icon: Bug, count: bugs.filter((b) => b.status !== 'Closed').length },
+    { label: 'Reports', path: '/reports', icon: BarChart3 },
+    { label: 'Settings', path: '/settings', icon: Settings },
+  ]
 
   return (
     <aside className="w-64 border-r border-jira-border bg-jira-sidebar p-3 flex flex-col min-h-[calc(100vh-3.5rem)]">
       <div className="flex-1 space-y-1">
         <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
-          Software Team
+          Software Planning & QA
         </div>
 
         {navItems.map((item) => {
@@ -30,14 +32,27 @@ const Sidebar = () => {
             <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition ${
                 isActive
                   ? 'bg-jira-blue/10 text-white font-medium'
                   : 'text-jira-text hover:bg-jira-surface hover:text-white'
               }`}
             >
-              <Icon size={18} className={isActive ? 'text-jira-blue' : 'text-jira-muted'} />
-              {item.label}
+              <div className="flex items-center gap-3">
+                <Icon size={18} className={isActive ? 'text-jira-blue' : 'text-jira-muted'} />
+                <span>{item.label}</span>
+              </div>
+              {item.count !== undefined && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    isActive
+                      ? 'bg-jira-blue text-white'
+                      : 'bg-jira-surface-2 text-jira-muted border border-jira-border'
+                  }`}
+                >
+                  {item.count}
+                </span>
+              )}
             </button>
           )
         })}
@@ -45,12 +60,12 @@ const Sidebar = () => {
 
       <div className="mt-auto border-t border-jira-border pt-3">
         <div className="flex items-center gap-3 px-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-jira-surface-2 text-white">
-            P
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-jira-blue/20 text-blue-400 font-bold border border-jira-blue/30">
+            QAR
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-semibold text-white truncate">QAForge Core</div>
-            <div className="text-[10px] text-jira-muted truncate">Software Project</div>
+            <div className="text-xs font-semibold text-white truncate">QAForge Sprint 24.4</div>
+            <div className="text-[10px] text-jira-muted truncate">Active Kanban Board</div>
           </div>
         </div>
       </div>

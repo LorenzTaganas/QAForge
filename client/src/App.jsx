@@ -3,7 +3,12 @@ import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import RequirementsPage from './pages/RequirementsPage'
+import TestCasesPage from './pages/TestCasesPage'
+import BugsPage from './pages/BugsPage'
+import ReportsPage from './pages/ReportsPage'
+import SettingsPage from './pages/SettingsPage'
 import { useAuth } from './context/AuthContext'
+import { QAProvider } from './context/QAContext'
 
 function App() {
   const { user, loading } = useAuth()
@@ -20,26 +25,60 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/requirements"
-        element={
-          <ProtectedRoute>
-            <RequirementsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
-    </Routes>
+    <QAProvider>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requirements"
+          element={
+            <ProtectedRoute>
+              <RequirementsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/test-cases"
+          element={
+            <ProtectedRoute>
+              <TestCasesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bugs"
+          element={
+            <ProtectedRoute>
+              <BugsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+      </Routes>
+    </QAProvider>
   )
 }
 

@@ -115,6 +115,22 @@ textarea {
   @apply rounded-md border border-jira-border bg-jira-surface p-3 shadow-lift transition hover:border-jira-surface-3 hover:shadow-glow;
 }
 
+/* Custom scrollbar utility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(140, 144, 151, 0.2);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 144, 151, 0.4);
+}
+
 .table-row {
   @apply border-t border-jira-border bg-jira-surface/60 transition hover:bg-jira-surface-2/70;
 }

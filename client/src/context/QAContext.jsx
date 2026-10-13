@@ -333,9 +333,10 @@ export const QAProvider = ({ children }) => {
     showToast(`Test ${id} marked as ${result}`)
   }
 
-  const createTestRun = (name = 'Ad hoc regression run') => {
-    const passed = testCases.filter((test) => test.lastResult === 'Passed').length
-    const failed = testCases.filter((test) => test.lastResult === 'Failed').length
+  const createTestRun = (name = 'Ad hoc regression run', projectKey = selectedProjectKey) => {
+    const scopedTestCases = testCases.filter((test) => !test.projectKey ? projectKey === 'QAR' : test.projectKey === projectKey)
+    const passed = scopedTestCases.filter((test) => test.lastResult === 'Passed').length
+    const failed = scopedTestCases.filter((test) => test.lastResult === 'Failed').length
     const run = {
       id: `RUN-${Date.now().toString().slice(-5)}`,
       name,
@@ -343,7 +344,8 @@ export const QAProvider = ({ children }) => {
       startedAt: new Date().toISOString(),
       passed,
       failed,
-      total: testCases.length,
+      total: scopedTestCases.length,
+      projectKey,
       environment: projectSettings.defaultEnv,
     }
     setTestRuns((previous) => [run, ...previous])

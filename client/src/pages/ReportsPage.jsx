@@ -3,40 +3,44 @@ import MainLayout from '../components/layout/MainLayout'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { ShieldCheck, TrendingUp, AlertOctagon, CheckCircle2 } from 'lucide-react'
 import { useQA } from '../context/QAContext'
+import { belongsToProject } from '../utils/projectScope'
 
 const COLORS = ['#10b981', '#ef4444', '#64748b'] // Passed, Failed, Pending
 
 const ReportsPage = () => {
-  const { testCases, bugs, requirements } = useQA()
+  const { testCases, bugs, requirements, selectedProjectKey } = useQA()
+  const projectTestCases = testCases.filter((testCase) => belongsToProject(testCase, selectedProjectKey))
+  const projectBugs = bugs.filter((bug) => belongsToProject(bug, selectedProjectKey))
+  const projectRequirements = requirements.filter((requirement) => belongsToProject(requirement, selectedProjectKey))
 
   // Dynamic test status distribution for Pie Chart
   const testData = useMemo(() => {
-    const passed = testCases.filter((tc) => tc.lastResult === 'Passed').length
-    const failed = testCases.filter((tc) => tc.lastResult === 'Failed').length
-    const pending = testCases.filter((tc) => tc.lastResult === 'Pending').length
+    const passed = projectTestCases.filter((tc) => tc.lastResult === 'Passed').length
+    const failed = projectTestCases.filter((tc) => tc.lastResult === 'Failed').length
+    const pending = projectTestCases.filter((tc) => tc.lastResult === 'Pending').length
     return [
       { name: 'Passed', value: passed },
       { name: 'Failed', value: failed },
       { name: 'Pending', value: pending },
     ]
-  }, [testCases])
+  }, [projectTestCases])
 
   // Defect severity distribution for Bar Chart
   const defectData = useMemo(() => {
     return [
-      { severity: 'Blocker', count: bugs.filter((b) => b.severity === 'Blocker').length },
-      { severity: 'Critical', count: bugs.filter((b) => b.severity === 'Critical').length },
-      { severity: 'Major', count: bugs.filter((b) => b.severity === 'Major').length },
-      { severity: 'Minor', count: bugs.filter((b) => b.severity === 'Minor').length },
+      { severity: 'Blocker', count: projectBugs.filter((b) => b.severity === 'Blocker').length },
+      { severity: 'Critical', count: projectBugs.filter((b) => b.severity === 'Critical').length },
+      { severity: 'Major', count: projectBugs.filter((b) => b.severity === 'Major').length },
+      { severity: 'Minor', count: projectBugs.filter((b) => b.severity === 'Minor').length },
     ]
-  }, [bugs])
+  }, [projectBugs])
 
-  const totalRuns = testCases.length
-  const passedRuns = testCases.filter((t) => t.lastResult === 'Passed').length
+  const totalRuns = projectTestCases.length
+  const passedRuns = projectTestCases.filter((t) => t.lastResult === 'Passed').length
   const passRate = totalRuns > 0 ? Math.round((passedRuns / totalRuns) * 100) : 0
 
-  const approvedReqs = requirements.filter((r) => r.status === 'Approved').length
-  const reqCoverage = requirements.length > 0 ? Math.round((approvedReqs / requirements.length) * 100) : 0
+  const approvedReqs = projectRequirements.filter((r) => r.status === 'Approved').length
+  const reqCoverage = projectRequirements.length > 0 ? Math.round((approvedReqs / projectRequirements.length) * 100) : 0
 
   return (
     <MainLayout>
@@ -85,7 +89,7 @@ const ReportsPage = () => {
               <AlertOctagon size={16} className="text-red-400" />
             </div>
             <div className="mt-2 text-3xl font-bold text-red-400">
-              {bugs.filter((b) => b.status !== 'Closed').length}
+              {projectBugs.filter((b) => b.status !== 'Closed').length}
             </div>
             <p className="mt-1 text-[11px] text-jira-muted">Triage priority active</p>
           </div>
@@ -96,7 +100,7 @@ const ReportsPage = () => {
               <CheckCircle2 size={16} className="text-purple-400" />
             </div>
             <div className="mt-2 text-3xl font-bold text-purple-400">
-              {bugs.filter((b) => b.status === 'Resolved' || b.status === 'Closed').length}
+              {projectBugs.filter((b) => b.status === 'Resolved' || b.status === 'Closed').length}
             </div>
             <p className="mt-1 text-[11px] text-jira-muted">Verified & closed defects</p>
           </div>

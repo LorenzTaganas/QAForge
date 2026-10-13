@@ -4,15 +4,18 @@ import { Link } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
 import { useQA } from '../context/QAContext'
 import { formatTimestamp, getTimestamp } from '../utils/time'
+import { belongsToProject } from '../utils/projectScope'
 
 const AuditLogsPage = () => {
-  const { activity, comments } = useQA()
+  const { activity, comments, tasks, requirements, testCases, bugs, selectedProjectKey } = useQA()
+  const projectIssueIds = new Set([...tasks, ...requirements, ...testCases, ...bugs].filter((item) => belongsToProject(item, selectedProjectKey)).map((item) => item.id))
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState('All')
   const events = useMemo(() => [
     ...activity.map((event) => ({ ...event, kind: 'Change' })),
     ...comments.map((comment) => ({ id: comment.id, issueId: comment.issueId, action: 'added a comment', actor: comment.author, createdAt: comment.createdAt, kind: 'Comment' })),
   ].filter((event) => {
+    if (!projectIssueIds.has(event.issueId)) return false
     const haystack = `${event.issueId} ${event.action} ${event.actor}`.toLowerCase()
     return (!query || haystack.includes(query.toLowerCase())) && (kind === 'All' || event.kind === kind)
   }).sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt)), [activity, comments, kind, query])

@@ -36,9 +36,22 @@ const Header = ({ onMenuClick }) => {
 
   useEffect(() => {
     const handleShortcut = (event) => {
-      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      const activeElement = document.activeElement
+      const isTyping = activeElement?.tagName === 'INPUT'
+        || activeElement?.tagName === 'TEXTAREA'
+        || activeElement?.isContentEditable
+
+      if (event.key === '/' && !isTyping) {
         event.preventDefault()
         document.getElementById('global-search')?.focus()
+      }
+
+      if (event.key.toLowerCase() === 'c' && !isTyping && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault()
+        setIsCreateModalOpen(true)
+        setShowSearchResults(false)
+        setShowNotifications(false)
+        setShowHelp(false)
       }
 
       if (event.key === 'Escape') {
@@ -271,6 +284,7 @@ const Header = ({ onMenuClick }) => {
                   <p>• Drag cards between board columns to update status.</p>
                   <p>• Open any issue key to edit details, comments, links, and sprint assignment.</p>
                   <p>• Press <kbd className="rounded border border-jira-border px-1 text-white">/</kbd> to focus global search.</p>
+                  <p>• Press <kbd className="rounded border border-jira-border px-1 text-white">C</kbd> to create an issue.</p>
                 </div>
                 <button type="button" onClick={() => { navigate('/projects'); setShowHelp(false) }} className="mt-3 text-[11px] text-jira-blue hover:underline">Open workspace projects</button>
               </div>

@@ -18,7 +18,7 @@ const Sidebar = () => {
   ]
 
   return (
-    <aside className="w-64 border-r border-jira-border bg-jira-sidebar p-3 flex flex-col min-h-[calc(100vh-3.5rem)]">
+    <aside className="w-64 border-r border-[#20283A] bg-[#111722] p-3 flex flex-col min-h-[calc(100vh-3.5rem)]">
       <div className="flex-1 space-y-1">
         <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
           Software Planning & QA

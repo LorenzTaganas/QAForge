@@ -61,7 +61,7 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-jira-border bg-jira-sidebar px-4 text-jira-text">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#20283A] bg-[#111722] px-4 text-[#DDE5F2]">
         {/* Left: Brand */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">

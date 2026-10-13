@@ -40,6 +40,7 @@ const IssueDetailPage = () => {
   } = useQA()
   const [comment, setComment] = useState('')
   const [editing, setEditing] = useState(false)
+  const [linkTarget, setLinkTarget] = useState('')
 
   const issue = useMemo(
     () => [...tasks, ...requirements, ...testCases, ...bugs].find((item) => item.id === issueId),
@@ -62,10 +63,21 @@ const IssueDetailPage = () => {
   const issueType = issue.type || (issue.severity ? 'Bug' : issue.requirementIds ? 'Test case' : 'Requirement')
   const linkedRequirements = (issue.requirementIds || []).map((id) => requirements.find((item) => item.id === id)).filter(Boolean)
   const linkedTests = testCases.filter((test) => (test.requirementIds || []).some((id) => id === issue.id || linkedRequirements.some((requirement) => requirement.id === id)))
+  const linkedIssueIds = issue.linkedIssueIds || []
+  const linkedIssues = [...tasks, ...requirements, ...testCases, ...bugs]
+    .filter((item) => item.id !== issue.id && linkedIssueIds.includes(item.id))
+  const linkCandidates = [...tasks, ...requirements, ...testCases, ...bugs]
+    .filter((item) => item.id !== issue.id && !linkedIssueIds.includes(item.id))
   const epic = epics.find((item) => item.id === issue.epicId)
   const sprint = sprints.find((item) => item.id === issue.sprintId)
 
   const updateField = (field, value) => updateIssue(issue.id, { [field]: value })
+  const addLinkedIssue = () => {
+    if (!linkTarget) return
+    updateField('linkedIssueIds', [...linkedIssueIds, linkTarget])
+    setLinkTarget('')
+  }
+  const removeLinkedIssue = (linkedId) => updateField('linkedIssueIds', linkedIssueIds.filter((id) => id !== linkedId))
   const submitComment = (event) => {
     event.preventDefault()
     if (!comment.trim()) return
@@ -140,6 +152,28 @@ const IssueDetailPage = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <LinkGroup icon={FileText} title="Requirements" items={linkedRequirements} empty="No linked requirements" />
                 <LinkGroup icon={TestTube2} title="Test cases" items={linkedTests} empty="No linked test cases" />
+              </div>
+              <div className="mt-3 rounded-lg border border-[#242D40] bg-[#141A26] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xs font-semibold text-[#DDE5F2]">Related issues</h3>
+                  <span className="text-[11px] text-[#78849A]">{linkedIssues.length} linked</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {linkedIssues.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 text-xs">
+                      <Link to={`/issues/${item.id}`} className="min-w-0 flex-1 truncate text-[#6EA8FF] hover:underline">{item.id} · {item.title}</Link>
+                      <button type="button" onClick={() => removeLinkedIssue(item.id)} className="text-[#78849A] hover:text-red-300" aria-label={`Unlink ${item.id}`}>Remove</button>
+                    </div>
+                  ))}
+                  {!linkedIssues.length && <p className="text-xs text-[#78849A]">Link related QA work to keep traceability explicit.</p>}
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <select value={linkTarget} onChange={(event) => setLinkTarget(event.target.value)} className="input-field">
+                    <option value="">Select an issue to link</option>
+                    {linkCandidates.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.title}</option>)}
+                  </select>
+                  <button type="button" onClick={addLinkedIssue} disabled={!linkTarget} className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={14} /> Link</button>
+                </div>
               </div>
             </section>
           </div>

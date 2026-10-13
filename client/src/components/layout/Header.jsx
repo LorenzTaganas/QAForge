@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Search, Plus, Bell, HelpCircle, LogOut, X, CheckCircle, FileText, Bug, CheckSquare } from 'lucide-react'
+import { Search, Plus, Bell, HelpCircle, LogOut, X, CheckCircle, FileText, Bug, CheckSquare, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useQA } from '../../context/QAContext'
 import CreateModal from '../common/CreateModal'
 import { useNavigate } from 'react-router-dom'
 
-const Header = () => {
+const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const {
@@ -61,14 +61,22 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#20283A] bg-[#111722] px-4 text-[#DDE5F2]">
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#20283A] bg-[#111722] px-3 text-[#DDE5F2] sm:px-4">
         {/* Left: Brand */}
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+            className="rounded-md p-2 text-[#AAB5C7] hover:bg-[#1C2638] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4B8DFF] lg:hidden"
+          >
+            <Menu size={19} />
+          </button>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-jira-blue font-bold text-white shadow-sm">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-jira-blue font-bold text-white shadow-sm">
               Q
             </div>
-            <span className="text-base font-bold tracking-tight text-white">QAForge</span>
+            <span className="hidden text-base font-bold tracking-tight text-white sm:inline">QAForge</span>
           </div>
 
           <div className="hidden h-4 w-px bg-jira-border md:block" />
@@ -96,7 +104,7 @@ const Header = () => {
         </div>
 
         {/* Middle: Global Search */}
-        <div className="relative flex flex-1 items-center justify-center px-4 max-w-md">
+        <div className="relative mx-2 flex min-w-0 flex-1 items-center justify-center px-0 sm:mx-4 sm:max-w-md">
           <div className="relative w-full">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-jira-muted" />
             <input
@@ -108,7 +116,7 @@ const Header = () => {
                 setShowSearchResults(true)
               }}
               onFocus={() => setShowSearchResults(true)}
-              placeholder="Search tasks, requirements, bugs... (Press '/')"
+              placeholder="Search QAForge..."
               className="w-full rounded-md border border-jira-border bg-jira-bg py-1.5 pl-9 pr-8 text-xs text-jira-text placeholder-jira-muted outline-none transition focus:border-jira-blue focus:ring-1 focus:ring-jira-blue"
             />
             {searchQuery ? (
@@ -170,10 +178,10 @@ const Header = () => {
         </div>
 
         {/* Right: Actions & User Menu */}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="btn-primary hidden h-8 px-3 text-xs md:inline-flex"
+            className="btn-primary hidden h-8 px-3 text-xs xl:inline-flex"
           >
             <Plus size={14} />
             Create
@@ -239,7 +247,7 @@ const Header = () => {
             )}
           </div>
 
-          <div className="h-4 w-px bg-jira-border" />
+          <div className="hidden h-4 w-px bg-jira-border sm:block" />
 
           <div className="flex items-center gap-2">
             <div className="hidden text-right md:block">
@@ -254,7 +262,8 @@ const Header = () => {
             <button
               onClick={logout}
               title="Sign Out"
-              className="rounded-md p-1.5 text-jira-muted hover:bg-jira-surface hover:text-red-400 transition"
+              aria-label="Sign out"
+              className="rounded-md p-2 text-jira-muted hover:bg-jira-surface hover:text-red-400 transition"
             >
               <LogOut size={16} />
             </button>

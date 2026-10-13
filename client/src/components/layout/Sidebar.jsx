@@ -1,9 +1,9 @@
 import React from 'react'
-import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings } from 'lucide-react'
+import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQA } from '../../context/QAContext'
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { tasks, requirements, testCases, bugs } = useQA()
@@ -18,7 +18,22 @@ const Sidebar = () => {
   ]
 
   return (
-    <aside className="w-64 border-r border-[#20283A] bg-[#111722] p-3 flex flex-col min-h-[calc(100vh-3.5rem)]">
+    <>
+      <button
+        type="button"
+        aria-label="Close navigation menu"
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity lg:hidden ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      />
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(82vw,18rem)] flex-col border-r border-[#20283A] bg-[#111722] p-3 pt-16 shadow-2xl transition-transform duration-200 lg:static lg:min-h-[calc(100vh-3.5rem)] lg:w-64 lg:translate-x-0 lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close navigation menu"
+          className="absolute right-3 top-3 rounded-md p-2 text-[#AAB5C7] hover:bg-[#1C2638] hover:text-white lg:hidden"
+        >
+          <X size={18} />
+        </button>
       <div className="flex-1 space-y-1">
         <div className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
           Software Planning & QA
@@ -31,7 +46,10 @@ const Sidebar = () => {
           return (
             <button
               key={item.label}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path)
+                onClose()
+              }}
               className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition ${
                 isActive
                   ? 'bg-jira-blue/10 text-white font-medium'
@@ -69,7 +87,8 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }
 

@@ -20,8 +20,41 @@ const RequirementsTable = ({ requirements }) => {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-jira-border bg-jira-surface/40">
-      <table className="w-full text-left text-xs border-collapse">
+    <div className="rounded-lg border border-jira-border bg-jira-surface/40">
+      <div className="divide-y divide-jira-border/60 md:hidden">
+        {requirements.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-jira-muted">
+            No requirements found. Click "+ Add requirement" to create one.
+          </p>
+        ) : requirements.map((req) => (
+          <article key={req.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <Link to={`/issues/${req.id}`} className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-jira-blue hover:underline">
+                <FileText size={13} /> {req.id}
+              </Link>
+              <button type="button" onClick={() => setActiveMenuId(activeMenuId === req.id ? null : req.id)}>
+                <StatusBadge status={req.status} type="status" />
+              </button>
+            </div>
+            <Link to={`/issues/${req.id}`} className="mt-2 block text-sm font-medium text-white">{req.title}</Link>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px]">
+              <StatusBadge status={req.priority} type="priority" />
+              <span className="rounded border border-jira-border px-2 py-1 text-jira-muted">{req.owner}</span>
+              {canDelete && <button type="button" onClick={() => deleteRequirement(req.id)} className="ml-auto rounded border border-red-500/20 px-2 py-1 text-red-400">Delete</button>}
+            </div>
+            {activeMenuId === req.id && (
+              <div className="mt-2 grid grid-cols-2 gap-1 rounded border border-jira-border bg-jira-surface p-1">
+                {statusOptions.map((option) => <button key={option} type="button" onClick={() => { updateRequirementStatus(req.id, option); setActiveMenuId(null) }} className={`rounded px-2 py-1 text-left text-[11px] ${req.status === option ? 'bg-jira-blue text-white' : 'text-jira-text hover:bg-jira-surface-2'}`}>{option}</button>)}
+              </div>
+            )}
+            <button type="button" onClick={() => toggleExpand(req.id)} className="mt-3 text-[11px] text-jira-blue hover:underline">
+              {expandedId === req.id ? 'Hide details' : 'Show details'}
+            </button>
+            {expandedId === req.id && <p className="mt-2 text-xs leading-relaxed text-jira-muted">{req.description || 'No detailed description provided for this requirement.'}</p>}
+          </article>
+        ))}
+      </div>
+      <table className="hidden w-full text-left text-xs border-collapse md:table">
         <thead className="border-b border-jira-border bg-jira-surface-2 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
           <tr>
             <th className="w-8 px-3 py-3"></th>

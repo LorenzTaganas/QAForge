@@ -20,14 +20,18 @@ const Header = ({ onMenuClick }) => {
     setSearchQuery,
     isCreateModalOpen,
     setIsCreateModalOpen,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
   } = useQA()
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const notifications = [...activity]
+  const recentNotifications = [...notifications]
     .sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt))
-    .slice(0, 4)
+    .slice(0, 5)
+  const unreadNotificationCount = notifications.filter((notification) => !notification.read).length
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -205,7 +209,11 @@ const Header = ({ onMenuClick }) => {
               title="Notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-jira-blue" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
             </button>
 
             {/* Notification Drawer */}
@@ -213,24 +221,27 @@ const Header = ({ onMenuClick }) => {
               <div className="absolute right-0 top-10 z-50 w-72 rounded-lg border border-jira-border bg-jira-surface p-3 shadow-lift">
                 <div className="flex items-center justify-between border-b border-jira-border pb-2 mb-2">
                   <span className="text-xs font-bold text-white">Notifications</span>
-                  <span className="text-[10px] text-jira-muted">{notifications.length} recent</span>
+                  <button type="button" onClick={markAllNotificationsRead} className="text-[10px] text-jira-blue hover:underline">
+                    Mark all read
+                  </button>
                 </div>
                 <div className="space-y-2 text-xs">
-                  {notifications.length ? notifications.map((item) => (
+                  {recentNotifications.length ? recentNotifications.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        navigate(`/issues/${item.issueId}`)
+                        markNotificationRead(item.id)
+                        if (item.issueId) navigate(`/issues/${item.issueId}`)
                         setShowNotifications(false)
                       }}
-                      className="w-full rounded p-2 text-left hover:bg-jira-surface-2/60"
+                      className={`w-full rounded p-2 text-left hover:bg-jira-surface-2/60 ${item.read ? '' : 'bg-jira-blue/10'}`}
                     >
-                      <p className="font-semibold text-white">{item.issueId}</p>
-                      <p className="mt-0.5 text-[11px] text-jira-muted">{item.actor} {item.action} · {formatTimestamp(item.createdAt)}</p>
+                      <p className="font-semibold text-white">{item.title || item.issueId || 'QAForge notification'}</p>
+                      <p className="mt-0.5 text-[11px] text-jira-muted">{item.message || `${item.actor || 'QAForge'} ${item.action || ''}`} · {formatTimestamp(item.createdAt)}</p>
                     </button>
                   )) : (
-                    <p className="p-2 text-center text-[11px] text-jira-muted">No recent activity.</p>
+                    <p className="p-2 text-center text-[11px] text-jira-muted">No notifications.</p>
                   )}
                 </div>
                 <button type="button" onClick={() => { navigate('/audit-log'); setShowNotifications(false) }} className="mt-2 w-full border-t border-jira-border pt-2 text-center text-[11px] text-jira-blue hover:underline">View activity log</button>

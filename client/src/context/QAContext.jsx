@@ -118,6 +118,7 @@ export const QAProvider = ({ children }) => {
   const [comments, setComments] = useState(() => loadStoredValue('qaforge-comments', initialComments))
   const [activity, setActivity] = useState(() => loadStoredValue('qaforge-activity', initialActivity))
   const [testRuns, setTestRuns] = useState(() => loadStoredValue('qaforge-test-runs', initialTestRuns))
+  const [notifications, setNotifications] = useState(() => loadStoredValue('qaforge-notifications', []))
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -176,7 +177,8 @@ export const QAProvider = ({ children }) => {
           api.get('/tasks'),
           api.get('/sprints'),
           api.get('/epics'),
-        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse, sprintResponse, epicResponse]) => {
+          api.get('/notifications'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse, sprintResponse, epicResponse, notificationResponse]) => {
           if (cancelled) return
           if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
           if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
@@ -188,6 +190,7 @@ export const QAProvider = ({ children }) => {
           if (taskResponse.data?.tasks) setTasks(taskResponse.data.tasks)
           if (sprintResponse.data?.sprints) setSprints(sprintResponse.data.sprints)
           if (epicResponse.data?.epics) setEpics(epicResponse.data.epics)
+          if (notificationResponse.data?.notifications) setNotifications(notificationResponse.data.notifications)
         })
       })
       .catch(() => {
@@ -228,6 +231,27 @@ export const QAProvider = ({ children }) => {
   useEffect(() => localStorage.setItem('qaforge-sprints', JSON.stringify(sprints)), [sprints])
   useEffect(() => localStorage.setItem('qaforge-comments', JSON.stringify(comments)), [comments])
   useEffect(() => localStorage.setItem('qaforge-activity', JSON.stringify(activity)), [activity])
+  useEffect(() => localStorage.setItem('qaforge-notifications', JSON.stringify(notifications)), [notifications])
+
+  const markNotificationRead = async (notificationId) => {
+    setNotifications((previous) => previous.map((notification) => (
+      notification.id === notificationId ? { ...notification, read: true } : notification
+    )))
+    try {
+      await api.patch(`/notifications/${notificationId}/read`)
+    } catch (error) {
+      if (error.response) showToast(error.response.data?.message || 'Could not update notification')
+    }
+  }
+
+  const markAllNotificationsRead = async () => {
+    setNotifications((previous) => previous.map((notification) => ({ ...notification, read: true })))
+    try {
+      await api.patch('/notifications/read-all')
+    } catch (error) {
+      if (error.response) showToast(error.response.data?.message || 'Could not update notifications')
+    }
+  }
   useEffect(() => localStorage.setItem('qaforge-test-runs', JSON.stringify(testRuns)), [testRuns])
 
   useEffect(() => () => clearTimeout(toastTimer.current), [])
@@ -250,6 +274,9 @@ export const QAProvider = ({ children }) => {
         comments,
         activity,
         testRuns,
+        notifications,
+        markNotificationRead,
+        markAllNotificationsRead,
       }).catch(() => {
         // Keep the local cache usable if the server is temporarily unavailable.
       })

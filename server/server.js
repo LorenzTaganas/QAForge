@@ -13,6 +13,7 @@ const collaborationRoutes = require('./routes/collaborationRoutes')
 const taskRoutes = require('./routes/taskRoutes')
 const sprintRoutes = require('./routes/sprintRoutes')
 const epicRoutes = require('./routes/epicRoutes')
+const notificationRoutes = require('./routes/notificationRoutes')
 
 dotenv.config()
 
@@ -42,6 +43,7 @@ app.use('/api', collaborationRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/sprints', sprintRoutes)
 app.use('/api/epics', epicRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')
@@ -55,6 +57,10 @@ app.use((err, req, res, next) => {
   })
 })
 
-app.listen(PORT, () => {
-  console.log(`QAForge server running on http://localhost:${PORT}`)
-})
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`QAForge server running on http://localhost:${PORT}`)
+  })
+}
+
+module.exports = app

@@ -14,7 +14,7 @@ const severityStyles = {
   Trivial: 'bg-jira-surface-2 text-jira-muted border-jira-border',
 }
 
-const statusOptions = ['Open', 'In Progress', 'Resolved', 'Closed']
+const statusOptions = ['Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed']
 
 const BugsPage = () => {
   const { bugs, selectedProjectKey, updateBugStatus, deleteBug, setIsCreateModalOpen, searchQuery } = useQA()
@@ -42,7 +42,7 @@ const BugsPage = () => {
     return {
       total: bugs.length,
       critical: bugs.filter((b) => b.severity === 'Critical' || b.severity === 'Blocker').length,
-      open: bugs.filter((b) => b.status === 'Open' || b.status === 'In Progress').length,
+      open: bugs.filter((b) => b.status === 'Open' || b.status === 'In Progress' || b.status === 'Reopened').length,
       resolved: bugs.filter((b) => b.status === 'Resolved' || b.status === 'Closed').length,
     }
   }, [bugs])
@@ -103,7 +103,7 @@ const BugsPage = () => {
 
             <div className="flex items-center gap-2">
               <span className="text-jira-muted font-medium">Status:</span>
-              {['All', 'Open', 'In Progress', 'Resolved', 'Closed'].map((st) => (
+              {['All', 'Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}

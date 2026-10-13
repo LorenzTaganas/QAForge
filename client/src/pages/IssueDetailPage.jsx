@@ -16,7 +16,7 @@ import MainLayout from '../components/layout/MainLayout'
 import { useQA } from '../context/QAContext'
 import { formatTimestamp } from '../utils/time'
 
-const statusOptions = ['To Do', 'In Progress', 'In Review', 'Done', 'Open', 'Resolved', 'Closed', 'Ready', 'Draft']
+const statusOptions = ['To Do', 'In Progress', 'In Review', 'Done', 'Open', 'Resolved', 'Verified', 'Reopened', 'Closed', 'Ready', 'Draft']
 const priorityColors = {
   Critical: 'border-red-400/30 bg-red-400/10 text-red-300',
   High: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
@@ -37,6 +37,7 @@ const IssueDetailPage = () => {
     epics,
     sprints,
     updateIssue,
+    updateBugStatus,
     addComment,
   } = useQA()
   const [comment, setComment] = useState('')
@@ -73,7 +74,13 @@ const IssueDetailPage = () => {
   const epic = epics.find((item) => item.id === issue.epicId)
   const sprint = sprints.find((item) => item.id === issue.sprintId)
 
-  const updateField = (field, value) => updateIssue(issue.id, { [field]: value })
+  const updateField = (field, value) => {
+    if (field === 'status' && issueType === 'Bug') {
+      updateBugStatus(issue.id, value)
+      return
+    }
+    updateIssue(issue.id, { [field]: value })
+  }
   const addLinkedIssue = () => {
     if (!linkTarget) return
     updateField('linkedIssueIds', [...linkedIssueIds, linkTarget])

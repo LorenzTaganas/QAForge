@@ -482,6 +482,16 @@ export const QAProvider = ({ children }) => {
     setBugs((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
     )
+    setActivity((previous) => [
+      {
+        id: `activity-${Date.now()}`,
+        issueId: id,
+        action: newStatus === 'Reopened' ? 'reopened the bug' : `changed bug status to ${newStatus}`,
+        actor: 'You',
+        createdAt: new Date().toISOString(),
+      },
+      ...previous,
+    ])
     try {
       await api.patch(`/bugs/${id}`, { status: newStatus })
     } catch (error) {

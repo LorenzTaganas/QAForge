@@ -5,7 +5,7 @@ const { readQaStore, queueQaStoreWrite } = require('../data/qaStore')
 const router = express.Router()
 const allowedSeverities = ['Trivial', 'Minor', 'Major', 'Critical', 'Blocker']
 const allowedPriorities = ['Low', 'Medium', 'High', 'Critical']
-const allowedStatuses = ['Open', 'In Progress', 'Resolved', 'Verified', 'Closed', "Won't Fix", 'Duplicate']
+const allowedStatuses = ['Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed', "Won't Fix", 'Duplicate']
 
 const getSnapshot = (store, userId) => store[userId] || {}
 const normalizeLabels = (labels) => Array.isArray(labels)
@@ -79,7 +79,12 @@ router.patch('/:bugId', async (req, res, next) => {
     }
     if (req.body.severity && allowedSeverities.includes(req.body.severity)) updates.severity = req.body.severity
     if (req.body.priority && allowedPriorities.includes(req.body.priority)) updates.priority = req.body.priority
-    if (req.body.status && allowedStatuses.includes(req.body.status)) updates.status = req.body.status
+    if (req.body.status) {
+      if (!allowedStatuses.includes(req.body.status)) {
+        return res.status(400).json({ success: false, message: 'Bug status is invalid.' })
+      }
+      updates.status = req.body.status
+    }
     if (Array.isArray(req.body.labels)) updates.labels = normalizeLabels(req.body.labels)
     bugs[index] = { ...bugs[index], ...updates }
     store[req.user.id] = { ...snapshot, bugs, updatedAt: new Date().toISOString() }

@@ -3,7 +3,7 @@
     "tasks": [
       {
         "title": "sadasdas",
-        "status": "In Progress",
+        "status": "To Do",
         "priority": "Medium",
         "owner": "QA Tester",
         "type": "Task",
@@ -15,7 +15,7 @@
         "priority": "High",
         "owner": "Maria Santos",
         "due": "Oct 30, 2026",
-        "status": "In Progress",
+        "status": "To Do",
         "id": "QAR-108"
       },
       {
@@ -23,7 +23,7 @@
         "priority": "Critical",
         "owner": "Lorenz Taganas",
         "due": "Oct 30, 2026",
-        "status": "In Progress",
+        "status": "To Do",
         "id": "QAR-106"
       },
       {
@@ -346,6 +346,27 @@
     ],
     "activity": [
       {
+        "id": "activity-1791873260469",
+        "issueId": "QAR-106",
+        "action": "updated status",
+        "actor": "You",
+        "createdAt": "2026-10-13T06:34:20.469Z"
+      },
+      {
+        "id": "activity-1791873252701",
+        "issueId": "QAR-108",
+        "action": "updated status",
+        "actor": "You",
+        "createdAt": "2026-10-13T06:34:12.701Z"
+      },
+      {
+        "id": "activity-1791873240644",
+        "issueId": "QAR-109",
+        "action": "updated status",
+        "actor": "You",
+        "createdAt": "2026-10-13T06:34:00.644Z"
+      },
+      {
         "id": "activity-1791869394639",
         "issueId": "QAR-109",
         "action": "moved to In Progress",
@@ -505,6 +526,6 @@
         "environment": "QA"
       }
     ],
-    "updatedAt": "2026-10-13T06:27:38.085Z"
+    "updatedAt": "2026-10-13T06:34:20.889Z"
   }
 }

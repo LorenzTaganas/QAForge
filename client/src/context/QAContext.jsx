@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import api from '../services/api'
+import { useAuth } from './AuthContext'
 
 const QAContext = createContext()
 
@@ -99,6 +101,9 @@ const createUniqueId = (prefix, items, start) => {
 }
 
 export const QAProvider = ({ children }) => {
+  const { isAuthenticated } = useAuth()
+  const hasLoadedServerSnapshot = useRef(false)
+  const persistTimer = useRef(null)
   const [tasks, setTasks] = useState(() => loadStoredValue('qaforge-tasks', initialTasks))
   const [requirements, setRequirements] = useState(() => loadStoredValue('qaforge-requirements', initialRequirements))
   const [testCases, setTestCases] = useState(() => loadStoredValue('qaforge-testcases', initialTestCases))
@@ -117,6 +122,42 @@ export const QAProvider = ({ children }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
   const toastTimer = useRef(null)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasLoadedServerSnapshot.current = false
+      return undefined
+    }
+
+    let cancelled = false
+    api.get('/qa/snapshot')
+      .then((response) => {
+        const snapshot = response.data.snapshot
+        if (cancelled || !snapshot) return
+
+        if (snapshot.tasks) setTasks(snapshot.tasks)
+        if (snapshot.requirements) setRequirements(snapshot.requirements)
+        if (snapshot.testCases) setTestCases(snapshot.testCases)
+        if (snapshot.bugs) setBugs(snapshot.bugs)
+        if (snapshot.projectSettings) setProjectSettings(snapshot.projectSettings)
+        if (snapshot.projects) setProjects(snapshot.projects)
+        if (snapshot.epics) setEpics(snapshot.epics)
+        if (snapshot.sprints) setSprints(snapshot.sprints)
+        if (snapshot.comments) setComments(snapshot.comments)
+        if (snapshot.activity) setActivity(snapshot.activity)
+        if (snapshot.testRuns) setTestRuns(snapshot.testRuns)
+      })
+      .catch(() => {
+        // The local cache remains available when the optional sync endpoint is unavailable.
+      })
+      .finally(() => {
+        if (!cancelled) hasLoadedServerSnapshot.current = true
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
 
   // Save changes to localStorage
   useEffect(() => {
@@ -146,6 +187,44 @@ export const QAProvider = ({ children }) => {
   useEffect(() => localStorage.setItem('qaforge-test-runs', JSON.stringify(testRuns)), [testRuns])
 
   useEffect(() => () => clearTimeout(toastTimer.current), [])
+
+  useEffect(() => {
+    if (!isAuthenticated || !hasLoadedServerSnapshot.current) return undefined
+
+    clearTimeout(persistTimer.current)
+    persistTimer.current = setTimeout(() => {
+      api.put('/qa/snapshot', {
+        tasks,
+        requirements,
+        testCases,
+        bugs,
+        projectSettings,
+        projects,
+        epics,
+        sprints,
+        comments,
+        activity,
+        testRuns,
+      }).catch(() => {
+        // Keep the local cache usable if the server is temporarily unavailable.
+      })
+    }, 400)
+
+    return () => clearTimeout(persistTimer.current)
+  }, [
+    isAuthenticated,
+    tasks,
+    requirements,
+    testCases,
+    bugs,
+    projectSettings,
+    projects,
+    epics,
+    sprints,
+    comments,
+    activity,
+    testRuns,
+  ])
 
   const showToast = (message) => {
     clearTimeout(toastTimer.current)

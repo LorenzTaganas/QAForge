@@ -3,6 +3,7 @@ const cors = require('cors')
 const dotenv = require('dotenv')
 const morgan = require('morgan')
 const authRoutes = require('./routes/authRoutes')
+const qaRoutes = require('./routes/qaRoutes')
 
 dotenv.config()
 
@@ -22,6 +23,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/qa', qaRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

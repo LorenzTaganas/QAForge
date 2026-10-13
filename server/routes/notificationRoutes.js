@@ -10,7 +10,18 @@ router.use(authMiddleware)
 router.get('/', async (req, res, next) => {
   try {
     const snapshot = getSnapshot(await readQaStore(), req.user.id)
-    const notifications = Array.isArray(snapshot.notifications) ? snapshot.notifications : []
+    const storedNotifications = Array.isArray(snapshot.notifications) ? snapshot.notifications : []
+    const activity = Array.isArray(snapshot.activity) ? snapshot.activity : []
+    const notifications = storedNotifications.length
+      ? storedNotifications
+      : activity.slice(0, 20).map((event) => ({
+        id: `activity-notification-${event.id}`,
+        issueId: event.issueId,
+        title: event.issueId || 'QAForge activity',
+        message: `${event.actor || 'A teammate'} ${event.action || 'updated an issue'}`,
+        createdAt: event.createdAt,
+        read: true,
+      }))
     return res.json({ success: true, notifications })
   } catch (error) {
     return next(error)

@@ -9,6 +9,7 @@ import ReportsPage from './pages/ReportsPage'
 import SettingsPage from './pages/SettingsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import IssueDetailPage from './pages/IssueDetailPage'
+import BacklogPage from './pages/BacklogPage'
 import { useAuth } from './context/AuthContext'
 import { QAProvider } from './context/QAContext'
 
@@ -83,6 +84,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProjectsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/backlog"
+          element={
+            <ProtectedRoute>
+              <BacklogPage />
             </ProtectedRoute>
           }
         />

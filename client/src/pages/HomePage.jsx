@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import MainLayout from '../components/layout/MainLayout'
+import { Link } from 'react-router-dom'
 import KanbanBoard from '../components/kanban/KanbanBoard'
 import {
   Activity,
@@ -302,7 +303,7 @@ const TaskList = ({ tasks }) => (
       <thead className="border-b border-[#242D40] bg-[#171E2B] text-[11px] uppercase tracking-wider text-[#78849A]">
         <tr>{['Key', 'Summary', 'Status', 'Priority', 'Assignee', 'Due date'].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
       </thead>
-      <tbody>{tasks.map((task) => <tr key={task.id} className="border-b border-[#20283A] last:border-0 hover:bg-[#192131]"><td className="px-4 py-3 font-mono font-semibold text-[#6EA8FF]">{task.id}</td><td className="px-4 py-3 font-medium text-[#E6EBF3]">{task.title}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.status}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.priority}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.owner}</td><td className="px-4 py-3 text-[#78849A]">{task.due}</td></tr>)}</tbody>
+      <tbody>{tasks.map((task) => <tr key={task.id} className="border-b border-[#20283A] last:border-0 hover:bg-[#192131]"><td className="px-4 py-3 font-mono font-semibold text-[#6EA8FF]"><Link to={`/issues/${task.id}`} className="hover:underline">{task.id}</Link></td><td className="px-4 py-3 font-medium text-[#E6EBF3]"><Link to={`/issues/${task.id}`} className="hover:text-[#B7D5FF]">{task.title}</Link></td><td className="px-4 py-3 text-[#AAB5C7]">{task.status}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.priority}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.owner}</td><td className="px-4 py-3 text-[#78849A]">{task.due}</td></tr>)}</tbody>
     </table>
   </div>
 )

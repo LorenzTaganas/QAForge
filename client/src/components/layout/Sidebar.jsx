@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const navItems = [
     { label: 'Overview', path: '/', icon: LayoutGrid, count: tasks.length },
     { label: 'Projects', path: '/projects', icon: FolderKanban, count: projects.length },
-    { label: 'Backlog', path: '/?view=board', icon: ListTodo },
+    { label: 'Backlog', path: '/backlog', icon: ListTodo },
     { label: 'Requirements', path: '/requirements', icon: FileText, count: requirements.length },
     { label: 'Test Cases', path: '/test-cases', icon: CheckSquare, count: testCases.length },
     { label: 'Bugs', path: '/bugs', icon: Bug, count: bugs.filter((b) => b.status !== 'Closed').length },

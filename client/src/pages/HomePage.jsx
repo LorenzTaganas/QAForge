@@ -180,6 +180,27 @@ const HomePage = () => {
           </div>
         )}
 
+        <div className="flex flex-col gap-3 border-b border-[#252E40] pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-1 rounded-lg border border-[#242D40] bg-[#141A26] p-1 text-xs font-semibold">
+            {['Analytics', 'Board', 'List', 'Timeline'].map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} className={activeTab === tab ? 'dashboard-tab-active' : 'dashboard-tab'}>
+                {tab === 'Analytics' ? <BarChart3 size={14} /> : tab === 'List' ? <List size={14} /> : tab === 'Timeline' ? <Calendar size={14} /> : <Layers3 size={14} />}
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {activeTab === 'Board' && (
+              <>
+                <span className="hidden text-xs text-[#78849A] sm:inline">Board</span>
+                <button onClick={() => setShowFilterBar((value) => !value)} className="dashboard-action"><SlidersHorizontal size={14} /> Filter</button>
+                <button onClick={() => setActiveTab('List')} className="dashboard-action"><List size={14} /> Display</button>
+              </>
+            )}
+            <button onClick={() => setIsCreateModalOpen(true)} className="dashboard-primary"><span>+</span> Create issue</button>
+          </div>
+        </div>
+
         {activeTab === 'Analytics' && (
           <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -257,27 +278,6 @@ const HomePage = () => {
         </div>
           </>
         )}
-
-        <div className="flex flex-col gap-3 border-b border-[#252E40] pb-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 rounded-lg border border-[#242D40] bg-[#141A26] p-1 text-xs font-semibold">
-            {['Analytics', 'Board', 'List', 'Timeline'].map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={activeTab === tab ? 'dashboard-tab-active' : 'dashboard-tab'}>
-                {tab === 'Analytics' ? <BarChart3 size={14} /> : tab === 'List' ? <List size={14} /> : tab === 'Timeline' ? <Calendar size={14} /> : <Layers3 size={14} />}
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {activeTab === 'Board' && (
-              <>
-                <span className="hidden text-xs text-[#78849A] sm:inline">Board</span>
-                <button onClick={() => setShowFilterBar((value) => !value)} className="dashboard-action"><SlidersHorizontal size={14} /> Filter</button>
-                <button onClick={() => setActiveTab('List')} className="dashboard-action"><List size={14} /> Display</button>
-              </>
-            )}
-            <button onClick={() => setIsCreateModalOpen(true)} className="dashboard-primary"><span>+</span> Create issue</button>
-          </div>
-        </div>
 
         {activeTab === 'Board' && <KanbanBoard columns={columns} />}
         {activeTab === 'List' && <TaskList tasks={filteredTasks} />}

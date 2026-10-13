@@ -21,11 +21,11 @@ const initialRequirements = [
 ]
 
 const initialTestCases = [
-  { id: 'TC-201', title: 'Verify successful login with valid credentials', type: 'Smoke', priority: 'High', status: 'Ready', owner: 'QA Tester', lastResult: 'Passed', steps: ['Navigate to /login', 'Enter valid email & password', 'Click Sign In', 'Verify redirection to dashboard'] },
-  { id: 'TC-202', title: 'Verify lockout after 5 consecutive failed login attempts', type: 'Security', priority: 'Critical', status: 'Ready', owner: 'QA Lead', lastResult: 'Passed', steps: ['Attempt 5 invalid passwords', 'Check HTTP 429 response', 'Verify account lockout banner'] },
-  { id: 'TC-203', title: 'Validate checkout transaction with expired credit card', type: 'Functional', priority: 'High', status: 'Ready', owner: 'QA Tester', lastResult: 'Failed', steps: ['Add item to cart', 'Input expired card details', 'Submit order', 'Verify specific error message'] },
-  { id: 'TC-204', title: 'Measure response latency under 500 concurrent users', type: 'Performance', priority: 'Medium', status: 'Ready', owner: 'Developer', lastResult: 'Passed', steps: ['Spin up Locust swarm', 'Trigger GET /api/health and /api/projects', 'Monitor p95 latency under 200ms'] },
-  { id: 'TC-205', title: 'Test password reset token expiry after 15 minutes', type: 'Regression', priority: 'Medium', status: 'Draft', owner: 'QA Tester', lastResult: 'Pending', steps: ['Request password reset', 'Wait 16 minutes', 'Attempt to submit new password', 'Confirm token expired'] },
+  { id: 'TC-201', title: 'Verify successful login with valid credentials', type: 'Smoke', priority: 'High', status: 'Ready', owner: 'QA Tester', requirementIds: ['REQ-101'], lastResult: 'Passed', steps: ['Navigate to /login', 'Enter valid email & password', 'Click Sign In', 'Verify redirection to dashboard'] },
+  { id: 'TC-202', title: 'Verify lockout after 5 consecutive failed login attempts', type: 'Security', priority: 'Critical', status: 'Ready', owner: 'QA Lead', requirementIds: ['REQ-101'], lastResult: 'Passed', steps: ['Attempt 5 invalid passwords', 'Check HTTP 429 response', 'Verify account lockout banner'] },
+  { id: 'TC-203', title: 'Validate checkout transaction with expired credit card', type: 'Functional', priority: 'High', status: 'Ready', owner: 'QA Tester', requirementIds: ['REQ-102'], lastResult: 'Failed', steps: ['Add item to cart', 'Input expired card details', 'Submit order', 'Verify specific error message'] },
+  { id: 'TC-204', title: 'Measure response latency under 500 concurrent users', type: 'Performance', priority: 'Medium', status: 'Ready', owner: 'Developer', requirementIds: ['REQ-103'], lastResult: 'Passed', steps: ['Spin up Locust swarm', 'Trigger GET /api/health and /api/projects', 'Monitor p95 latency under 200ms'] },
+  { id: 'TC-205', title: 'Test password reset token expiry after 15 minutes', type: 'Regression', priority: 'Medium', status: 'Draft', owner: 'QA Tester', requirementIds: ['REQ-105'], lastResult: 'Pending', steps: ['Request password reset', 'Wait 16 minutes', 'Attempt to submit new password', 'Confirm token expired'] },
 ]
 
 const initialBugs = [
@@ -69,6 +69,11 @@ const initialActivity = [
   { id: 'activity-2', issueId: 'BUG-301', action: 'created this issue', actor: 'Lorenz Taganas', createdAt: 'Yesterday, 3:54 PM' },
 ]
 
+const initialTestRuns = [
+  { id: 'RUN-1042', name: 'Release candidate smoke suite', status: 'Completed', startedAt: 'Today, 10:14 AM', passed: 4, failed: 1, total: 5, environment: 'Staging' },
+  { id: 'RUN-1041', name: 'Authentication regression', status: 'Completed', startedAt: 'Yesterday, 4:22 PM', passed: 5, failed: 0, total: 5, environment: 'QA' },
+]
+
 const loadStoredValue = (key, fallback) => {
   try {
     const saved = localStorage.getItem(key)
@@ -106,6 +111,7 @@ export const QAProvider = ({ children }) => {
   const [sprints, setSprints] = useState(() => loadStoredValue('qaforge-sprints', initialSprints))
   const [comments, setComments] = useState(() => loadStoredValue('qaforge-comments', initialComments))
   const [activity, setActivity] = useState(() => loadStoredValue('qaforge-activity', initialActivity))
+  const [testRuns, setTestRuns] = useState(() => loadStoredValue('qaforge-test-runs', initialTestRuns))
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -137,6 +143,7 @@ export const QAProvider = ({ children }) => {
   useEffect(() => localStorage.setItem('qaforge-sprints', JSON.stringify(sprints)), [sprints])
   useEffect(() => localStorage.setItem('qaforge-comments', JSON.stringify(comments)), [comments])
   useEffect(() => localStorage.setItem('qaforge-activity', JSON.stringify(activity)), [activity])
+  useEffect(() => localStorage.setItem('qaforge-test-runs', JSON.stringify(testRuns)), [testRuns])
 
   useEffect(() => () => clearTimeout(toastTimer.current), [])
 
@@ -225,6 +232,24 @@ export const QAProvider = ({ children }) => {
     showToast(`Test ${id} marked as ${result}`)
   }
 
+  const createTestRun = (name = 'Ad hoc regression run') => {
+    const passed = testCases.filter((test) => test.lastResult === 'Passed').length
+    const failed = testCases.filter((test) => test.lastResult === 'Failed').length
+    const run = {
+      id: `RUN-${Date.now().toString().slice(-5)}`,
+      name,
+      status: 'Completed',
+      startedAt: 'Just now',
+      passed,
+      failed,
+      total: testCases.length,
+      environment: projectSettings.defaultEnv,
+    }
+    setTestRuns((previous) => [run, ...previous])
+    showToast(`Created test run ${run.id}`)
+    return run
+  }
+
   const deleteTestCase = (id) => {
     setTestCases((prev) => prev.filter((tc) => tc.id !== id))
     showToast(`Deleted test case ${id}`)
@@ -307,6 +332,7 @@ export const QAProvider = ({ children }) => {
         sprints,
         comments,
         activity,
+        testRuns,
         projectSettings,
         searchQuery,
         setSearchQuery,
@@ -323,6 +349,7 @@ export const QAProvider = ({ children }) => {
         updateRequirementStatus,
         addTestCase,
         executeTestCase,
+        createTestRun,
         deleteTestCase,
         addBug,
         updateBugStatus,

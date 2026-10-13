@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import api from '../services/api'
 import { useAuth } from './AuthContext'
-
-const QAContext = createContext()
+import QAContext from './QAContextBase'
 
 const initialTasks = [
   { id: 'QAR-101', title: 'Validate OAuth2 token refresh & session revocation', status: 'To Do', priority: 'High', owner: 'QA Tester', due: 'Oct 14, 2026', type: 'Task' },
@@ -777,6 +776,7 @@ export const QAProvider = ({ children }) => {
         bugs,
         projects,
         selectedProjectKey,
+        setSelectedProjectKey,
         epics,
         sprints,
         comments,
@@ -826,12 +826,4 @@ export const QAProvider = ({ children }) => {
       )}
     </QAContext.Provider>
   )
-}
-
-export const useQA = () => {
-  const context = useContext(QAContext)
-  if (!context) {
-    throw new Error('useQA must be used within a QAProvider')
-  }
-  return context
 }

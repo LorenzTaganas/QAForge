@@ -271,7 +271,7 @@ export const QAProvider = ({ children }) => {
       prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     )
     showToast(`Updated ${taskId} to ${newStatus}`)
-    setActivity((previous) => [{ id: `activity-${Date.now()}`, issueId: taskId, action: `moved to ${newStatus}`, actor: 'You', createdAt: 'Just now' }, ...previous])
+    setActivity((previous) => [{ id: `activity-${Date.now()}`, issueId: taskId, action: `moved to ${newStatus}`, actor: 'You', createdAt: new Date().toISOString() }, ...previous])
   }
 
   const deleteTask = (taskId) => {
@@ -334,7 +334,7 @@ export const QAProvider = ({ children }) => {
       id: `RUN-${Date.now().toString().slice(-5)}`,
       name,
       status: 'Completed',
-      startedAt: 'Just now',
+      startedAt: new Date().toISOString(),
       passed,
       failed,
       total: testCases.length,
@@ -392,7 +392,7 @@ export const QAProvider = ({ children }) => {
         issueId,
         action: `updated ${changedFields}`,
         actor: 'You',
-        createdAt: 'Just now',
+        createdAt: new Date().toISOString(),
       },
       ...previous,
     ])
@@ -403,11 +403,11 @@ export const QAProvider = ({ children }) => {
     if (!body.trim()) return
 
     setComments((previous) => [
-      { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: 'Just now' },
+      { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: new Date().toISOString() },
       ...previous,
     ])
     setActivity((previous) => [
-      { id: `activity-${Date.now()}`, issueId, action: 'added a comment', actor: author, createdAt: 'Just now' },
+      { id: `activity-${Date.now()}`, issueId, action: 'added a comment', actor: author, createdAt: new Date().toISOString() },
       ...previous,
     ])
     showToast('Comment added')

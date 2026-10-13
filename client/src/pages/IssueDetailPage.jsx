@@ -14,6 +14,7 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
 import { useQA } from '../context/QAContext'
+import { formatTimestamp } from '../utils/time'
 
 const statusOptions = ['To Do', 'In Progress', 'In Review', 'Done', 'Open', 'Resolved', 'Closed', 'Ready', 'Draft']
 const priorityColors = {
@@ -131,7 +132,7 @@ const IssueDetailPage = () => {
               <div className="mt-5 space-y-3">
                 {issueComments.length ? issueComments.map((item) => (
                   <div key={item.id} className="rounded-lg border border-[#242D40] bg-[#141A26] p-3">
-                    <div className="flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-white">{item.author}</span><span className="text-[#78849A]">{item.createdAt}</span></div>
+                    <div className="flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-white">{item.author}</span><span className="text-[#78849A]">{formatTimestamp(item.createdAt)}</span></div>
                     <p className="mt-2 text-sm leading-6 text-[#AAB5C7]">{item.body}</p>
                   </div>
                 )) : <p className="py-5 text-center text-xs text-jira-muted">No comments yet. Add the first update.</p>}
@@ -142,7 +143,7 @@ const IssueDetailPage = () => {
               <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white"><CheckCircle2 size={16} className="text-[#49C2B1]" /> Activity</h2>
               <div className="space-y-3">
                 {issueActivity.length ? issueActivity.map((item) => (
-                  <div key={item.id} className="flex items-start gap-3 text-xs"><span className="mt-1 h-2 w-2 rounded-full bg-[#4B8DFF]" /><p className="text-[#AAB5C7]"><strong className="text-white">{item.actor}</strong> {item.action}<span className="ml-2 text-[#78849A]">{item.createdAt}</span></p></div>
+                  <div key={item.id} className="flex items-start gap-3 text-xs"><span className="mt-1 h-2 w-2 rounded-full bg-[#4B8DFF]" /><p className="text-[#AAB5C7]"><strong className="text-white">{item.actor}</strong> {item.action}<span className="ml-2 text-[#78849A]">{formatTimestamp(item.createdAt)}</span></p></div>
                 )) : <p className="text-xs text-jira-muted">No activity recorded.</p>}
               </div>
             </section>

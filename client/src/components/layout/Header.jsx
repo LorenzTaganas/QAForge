@@ -5,6 +5,7 @@ import { useQA } from '../../context/QAContext'
 import CreateModal from '../common/CreateModal'
 import { useNavigate } from 'react-router-dom'
 import { canCreateIssue } from '../../utils/permissions'
+import { formatTimestamp, getTimestamp } from '../../utils/time'
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
@@ -24,7 +25,9 @@ const Header = ({ onMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const notifications = activity.slice(0, 4)
+  const notifications = [...activity]
+    .sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt))
+    .slice(0, 4)
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -224,7 +227,7 @@ const Header = ({ onMenuClick }) => {
                       className="w-full rounded p-2 text-left hover:bg-jira-surface-2/60"
                     >
                       <p className="font-semibold text-white">{item.issueId}</p>
-                      <p className="mt-0.5 text-[11px] text-jira-muted">{item.actor} {item.action} · {item.createdAt}</p>
+                      <p className="mt-0.5 text-[11px] text-jira-muted">{item.actor} {item.action} · {formatTimestamp(item.createdAt)}</p>
                     </button>
                   )) : (
                     <p className="p-2 text-center text-[11px] text-jira-muted">No recent activity.</p>

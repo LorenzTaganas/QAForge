@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Calendar, Trash2, ArrowRightCircle, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useQA } from '../../context/QAContext'
 
 const priorityColors = {
@@ -44,9 +45,9 @@ const KanbanCard = ({ task }) => {
           </button>
         </div>
 
-        <h4 className="text-xs font-medium text-jira-text group-hover:text-white transition leading-snug">
+        <Link to={`/issues/${task.id}`} className="block text-xs font-medium leading-snug text-jira-text transition group-hover:text-white">
           {task.title}
-        </h4>
+        </Link>
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-jira-border/60 pt-2.5">

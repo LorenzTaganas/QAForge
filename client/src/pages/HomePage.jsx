@@ -135,13 +135,13 @@ const HomePage = () => {
                 <span className="h-2 w-2 rounded-sm bg-[#49C2B1]" />
                 QAForge Core Platform
               </span>
-              <span>Global health check · Updated just now</span>
+              <span>{activeTab === 'Board' ? `${filteredTasks.length} issues · Updated just now` : 'Global health check · Updated just now'}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#182A4A] text-[#56B6FF]">
                 <Activity size={22} />
               </div>
-              <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#F4F7FB]">QA Analytics</h1>
+              <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#F4F7FB]">{activeTab === 'Board' ? 'All issues' : 'QA Analytics'}</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -258,7 +258,7 @@ const HomePage = () => {
           </>
         )}
 
-        <div className="flex items-center justify-between border-b border-[#252E40] pb-3">
+        <div className="flex flex-col gap-3 border-b border-[#252E40] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1 rounded-lg border border-[#242D40] bg-[#141A26] p-1 text-xs font-semibold">
             {['Analytics', 'Board', 'List', 'Timeline'].map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={activeTab === tab ? 'dashboard-tab-active' : 'dashboard-tab'}>
@@ -267,7 +267,16 @@ const HomePage = () => {
               </button>
             ))}
           </div>
-          <button onClick={() => setIsCreateModalOpen(true)} className="dashboard-primary"><span>+</span> Create issue</button>
+          <div className="flex flex-wrap items-center gap-2">
+            {activeTab === 'Board' && (
+              <>
+                <span className="hidden text-xs text-[#78849A] sm:inline">Board</span>
+                <button onClick={() => setShowFilterBar((value) => !value)} className="dashboard-action"><SlidersHorizontal size={14} /> Filter</button>
+                <button onClick={() => setActiveTab('List')} className="dashboard-action"><List size={14} /> Display</button>
+              </>
+            )}
+            <button onClick={() => setIsCreateModalOpen(true)} className="dashboard-primary"><span>+</span> Create issue</button>
+          </div>
         </div>
 
         {activeTab === 'Board' && <KanbanBoard columns={columns} />}

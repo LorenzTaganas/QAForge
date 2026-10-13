@@ -20,7 +20,11 @@ const KanbanCard = ({ task }) => {
   const nextStatus = currentIdx !== -1 && currentIdx < statusFlow.length - 1 ? statusFlow[currentIdx + 1] : null
 
   return (
-    <div className="kanban-card group relative flex flex-col justify-between transition hover:border-jira-blue/60">
+    <div
+      draggable
+      onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
+      className="kanban-card group relative flex cursor-grab flex-col justify-between transition hover:border-jira-blue/60 active:cursor-grabbing"
+    >
       <div>
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5">

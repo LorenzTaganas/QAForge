@@ -4,9 +4,10 @@ import KanbanCard from './KanbanCard'
 import { useQA } from '../../context/QAContext'
 
 const KanbanColumn = ({ column }) => {
-  const { addTask } = useQA()
+  const { addTask, updateTaskStatus } = useQA()
   const [isAdding, setIsAdding] = useState(false)
   const [quickTitle, setQuickTitle] = useState('')
+  const [isDropTarget, setIsDropTarget] = useState(false)
 
   const columnName = column?.name || 'To Do'
   const tasks = column?.tasks || []
@@ -34,8 +35,25 @@ const KanbanColumn = ({ column }) => {
     closeQuickAdd()
   }
 
+  const handleDrop = (event) => {
+    event.preventDefault()
+    const taskId = event.dataTransfer.getData('text/plain')
+    if (taskId) updateTaskStatus(taskId, columnName)
+    setIsDropTarget(false)
+  }
+
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-lg bg-jira-surface/30 p-2.5 border border-jira-border/60 hover:border-jira-border transition">
+    <div
+      onDragOver={(event) => {
+        event.preventDefault()
+        setIsDropTarget(true)
+      }}
+      onDragLeave={() => setIsDropTarget(false)}
+      onDrop={handleDrop}
+      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2.5 transition ${
+        isDropTarget ? 'border-jira-blue bg-jira-blue/10' : 'border-jira-border/60 bg-jira-surface/30 hover:border-jira-border'
+      }`}
+    >
       {/* Column Header */}
       <div className="mb-2 flex items-center justify-between px-2 py-2">
         <div className="flex items-center gap-2">

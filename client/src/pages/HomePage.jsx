@@ -49,10 +49,16 @@ const chartTooltipStyle = {
 
 const HomePage = () => {
   const { tasks, testCases, bugs, requirements, setIsCreateModalOpen, showToast, searchQuery } = useQA()
-  const [activeTab, setActiveTab] = useState('Board')
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('qaforge-home-view') || 'Board')
   const [selectedPriority, setSelectedPriority] = useState('All')
   const [selectedOwner, setSelectedOwner] = useState('All')
+  const [selectedStatus, setSelectedStatus] = useState('All')
   const [showFilterBar, setShowFilterBar] = useState(false)
+
+  const changeView = (view) => {
+    setActiveTab(view)
+    localStorage.setItem('qaforge-home-view', view)
+  }
 
   const filteredTasks = useMemo(
     () =>
@@ -61,9 +67,10 @@ const HomePage = () => {
         const matchesSearch = !query || task.title.toLowerCase().includes(query) || task.id.toLowerCase().includes(query)
         const matchesPriority = selectedPriority === 'All' || task.priority === selectedPriority
         const matchesOwner = selectedOwner === 'All' || task.owner === selectedOwner
-        return matchesSearch && matchesPriority && matchesOwner
+        const matchesStatus = selectedStatus === 'All' || task.status === selectedStatus
+        return matchesSearch && matchesPriority && matchesOwner && matchesStatus
       }),
-    [tasks, searchQuery, selectedPriority, selectedOwner],
+    [tasks, searchQuery, selectedPriority, selectedOwner, selectedStatus],
   )
 
   const columns = useMemo(
@@ -171,6 +178,13 @@ const HomePage = () => {
               </button>
             ))}
             <span className="mx-1 h-4 w-px bg-[#2B3345]" />
+            <span className="text-[#78849A]">Status:</span>
+            {['All', 'To Do', 'In Progress', 'In Review', 'Done'].map((status) => (
+              <button key={status} onClick={() => setSelectedStatus(status)} className={selectedStatus === status ? 'dashboard-filter-active' : 'dashboard-filter'}>
+                {status}
+              </button>
+            ))}
+            <span className="mx-1 h-4 w-px bg-[#2B3345]" />
             <span className="text-[#78849A]">Owner:</span>
             {['All', 'QA Tester', 'QA Lead', 'Developer', 'Security'].map((owner) => (
               <button key={owner} onClick={() => setSelectedOwner(owner)} className={selectedOwner === owner ? 'dashboard-filter-active' : 'dashboard-filter'}>
@@ -183,7 +197,7 @@ const HomePage = () => {
         <div className="flex flex-col gap-3 border-b border-[#252E40] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1 rounded-lg border border-[#242D40] bg-[#141A26] p-1 text-xs font-semibold">
             {['Analytics', 'Board', 'List', 'Timeline'].map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={activeTab === tab ? 'dashboard-tab-active' : 'dashboard-tab'}>
+              <button key={tab} onClick={() => changeView(tab)} className={activeTab === tab ? 'dashboard-tab-active' : 'dashboard-tab'}>
                 {tab === 'Analytics' ? <BarChart3 size={14} /> : tab === 'List' ? <List size={14} /> : tab === 'Timeline' ? <Calendar size={14} /> : <Layers3 size={14} />}
                 {tab}
               </button>
@@ -194,7 +208,7 @@ const HomePage = () => {
               <>
                 <span className="hidden text-xs text-[#78849A] sm:inline">Board</span>
                 <button onClick={() => setShowFilterBar((value) => !value)} className="dashboard-action"><SlidersHorizontal size={14} /> Filter</button>
-                <button onClick={() => setActiveTab('List')} className="dashboard-action"><List size={14} /> Display</button>
+                <button onClick={() => changeView('List')} className="dashboard-action"><List size={14} /> Display</button>
               </>
             )}
             <button onClick={() => setIsCreateModalOpen(true)} className="dashboard-primary"><span>+</span> Create issue</button>

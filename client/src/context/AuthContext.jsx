@@ -37,9 +37,15 @@ export const AuthProvider = ({ children }) => {
     return response.data
   }
 
-  const logout = () => {
-    localStorage.removeItem('qaforge-token')
-    setUser(null)
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Clear local auth state even when the session has already expired or the API is unavailable.
+    } finally {
+      localStorage.removeItem('qaforge-token')
+      setUser(null)
+    }
   }
 
   const value = useMemo(

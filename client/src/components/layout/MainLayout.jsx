@@ -8,7 +8,8 @@ import { useQA } from '../../context/QAContext'
 const MainLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const location = useLocation()
-  const { projectSettings, sprints } = useQA()
+  const { projectSettings, projects, selectedProjectKey, setSelectedProjectKey, sprints } = useQA()
+  const selectedProject = projects.find((project) => project.key === selectedProjectKey) || projects[0]
   const activeSprint = sprints.find((sprint) => sprint.status === 'Active')
   const pageNames = {
     '/': 'Overview',
@@ -38,7 +39,16 @@ const MainLayout = ({ children }) => {
               QAForge
             </Link>
             <ChevronRight size={13} className="shrink-0 text-[#4A566B]" />
-            <span className="truncate font-medium text-[#DDE5F2]">{projectSettings.name}</span>
+            <label className="flex min-w-0 items-center gap-1.5">
+              <span className="sr-only">Current project</span>
+              <select
+                value={selectedProject?.key || projectSettings.key}
+                onChange={(event) => setSelectedProjectKey(event.target.value)}
+                className="max-w-[11rem] truncate rounded border border-[#2B3345] bg-[#171B25] px-2 py-1 font-medium text-[#DDE5F2] outline-none focus:border-[#4B8DFF] sm:max-w-[16rem]"
+              >
+                {projects.map((project) => <option key={project.key} value={project.key}>{project.key} · {project.name}</option>)}
+              </select>
+            </label>
             <ChevronRight size={13} className="shrink-0 text-[#4A566B]" />
             <span className="truncate text-[#78849A]">{pageName}</span>
           </div>

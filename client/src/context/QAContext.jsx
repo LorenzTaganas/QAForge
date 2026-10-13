@@ -112,6 +112,7 @@ export const QAProvider = ({ children }) => {
     loadStoredValue('qaforge-settings', initialProjectSettings),
   )
   const [projects, setProjects] = useState(() => loadStoredValue('qaforge-projects', initialProjects))
+  const [selectedProjectKey, setSelectedProjectKey] = useState(() => loadStoredValue('qaforge-selected-project', initialProjectSettings.key))
   const [epics, setEpics] = useState(() => loadStoredValue('qaforge-epics', initialEpics))
   const [sprints, setSprints] = useState(() => loadStoredValue('qaforge-sprints', initialSprints))
   const [comments, setComments] = useState(() => loadStoredValue('qaforge-comments', initialComments))
@@ -157,6 +158,7 @@ export const QAProvider = ({ children }) => {
         if (snapshot.bugs) setBugs(snapshot.bugs)
         if (snapshot.projectSettings) setProjectSettings(snapshot.projectSettings)
         if (snapshot.projects) setProjects(snapshot.projects)
+        if (snapshot.selectedProjectKey) setSelectedProjectKey(snapshot.selectedProjectKey)
         if (snapshot.epics) setEpics(snapshot.epics)
         if (snapshot.sprints) setSprints(snapshot.sprints)
         if (snapshot.comments) setComments(snapshot.comments)
@@ -196,6 +198,7 @@ export const QAProvider = ({ children }) => {
     localStorage.setItem('qaforge-settings', JSON.stringify(projectSettings))
   }, [projectSettings])
   useEffect(() => localStorage.setItem('qaforge-projects', JSON.stringify(projects)), [projects])
+  useEffect(() => localStorage.setItem('qaforge-selected-project', JSON.stringify(selectedProjectKey)), [selectedProjectKey])
   useEffect(() => localStorage.setItem('qaforge-epics', JSON.stringify(epics)), [epics])
   useEffect(() => localStorage.setItem('qaforge-sprints', JSON.stringify(sprints)), [sprints])
   useEffect(() => localStorage.setItem('qaforge-comments', JSON.stringify(comments)), [comments])
@@ -216,6 +219,8 @@ export const QAProvider = ({ children }) => {
         bugs,
         projectSettings,
         projects,
+        selectedProjectKey,
+        setSelectedProjectKey,
         epics,
         sprints,
         comments,
@@ -235,6 +240,7 @@ export const QAProvider = ({ children }) => {
     bugs,
     projectSettings,
     projects,
+    selectedProjectKey,
     epics,
     sprints,
     comments,
@@ -446,6 +452,7 @@ export const QAProvider = ({ children }) => {
         testCases,
         bugs,
         projects,
+        selectedProjectKey,
         epics,
         sprints,
         comments,

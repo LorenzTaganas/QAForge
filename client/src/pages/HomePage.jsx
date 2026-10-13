@@ -48,7 +48,12 @@ const chartTooltipStyle = {
 }
 
 const HomePage = () => {
-  const { tasks, testCases, bugs, requirements, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const { tasks, testCases, bugs, requirements, selectedProjectKey, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const belongsToProject = (item) => !item.projectKey ? selectedProjectKey === 'QAR' : item.projectKey === selectedProjectKey
+  const projectTasks = useMemo(() => tasks.filter(belongsToProject), [selectedProjectKey, tasks])
+  const projectTestCases = useMemo(() => testCases.filter(belongsToProject), [selectedProjectKey, testCases])
+  const projectBugs = useMemo(() => bugs.filter(belongsToProject), [bugs, selectedProjectKey])
+  const projectRequirements = useMemo(() => requirements.filter(belongsToProject), [requirements, selectedProjectKey])
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('qaforge-home-view') || 'Board')
   const [selectedPriority, setSelectedPriority] = useState('All')
   const [selectedOwner, setSelectedOwner] = useState('All')
@@ -62,7 +67,7 @@ const HomePage = () => {
 
   const filteredTasks = useMemo(
     () =>
-      tasks.filter((task) => {
+      projectTasks.filter((task) => {
         const query = searchQuery.toLowerCase()
         const matchesSearch = !query || task.title.toLowerCase().includes(query) || task.id.toLowerCase().includes(query)
         const matchesPriority = selectedPriority === 'All' || task.priority === selectedPriority
@@ -70,7 +75,7 @@ const HomePage = () => {
         const matchesStatus = selectedStatus === 'All' || task.status === selectedStatus
         return matchesSearch && matchesPriority && matchesOwner && matchesStatus
       }),
-    [tasks, searchQuery, selectedPriority, selectedOwner, selectedStatus],
+    [projectTasks, searchQuery, selectedPriority, selectedOwner, selectedStatus],
   )
 
   const columns = useMemo(
@@ -79,23 +84,23 @@ const HomePage = () => {
   )
 
   const metrics = useMemo(() => {
-    const passed = testCases.filter((test) => test.lastResult === 'Passed').length
-    const failed = testCases.filter((test) => test.lastResult === 'Failed').length
-    const activeBugs = bugs.filter((bug) => bug.status !== 'Closed').length
-    const passRate = testCases.length ? Math.round((passed / testCases.length) * 100) : 0
-    const approved = requirements.filter((requirement) => requirement.status === 'Approved').length
+    const passed = projectTestCases.filter((test) => test.lastResult === 'Passed').length
+    const failed = projectTestCases.filter((test) => test.lastResult === 'Failed').length
+    const activeBugs = projectBugs.filter((bug) => bug.status !== 'Closed').length
+    const passRate = projectTestCases.length ? Math.round((passed / projectTestCases.length) * 100) : 0
+    const approved = projectRequirements.filter((requirement) => requirement.status === 'Approved').length
 
     return {
-      executions: testCases.length,
-      uniqueCases: testCases.length,
-      variants: testCases.filter((test) => test.type === 'Regression' || test.type === 'Performance').length,
+      executions: projectTestCases.length,
+      uniqueCases: projectTestCases.length,
+      variants: projectTestCases.filter((test) => test.type === 'Regression' || test.type === 'Performance').length,
       passRate,
       activeBugs,
-      coverage: requirements.length ? Math.round((approved / requirements.length) * 100) : 0,
+      coverage: projectRequirements.length ? Math.round((approved / projectRequirements.length) * 100) : 0,
       passed,
       failed,
     }
-  }, [bugs, requirements, testCases])
+  }, [projectBugs, projectRequirements, projectTestCases])
 
   const outcomeData = useMemo(
     () => [
@@ -278,7 +283,7 @@ const HomePage = () => {
           </AnalyticsCard>
           <AnalyticsCard title="Recent quality signals" subtitle="Issues and work that need attention" icon={Clock3}>
             <div className="space-y-2">
-              {bugs.slice(0, 3).map((bug) => (
+              {projectBugs.slice(0, 3).map((bug) => (
                 <div key={bug.id} className="flex items-center gap-3 rounded-lg border border-[#242D40] bg-[#141A26] px-3 py-2.5">
                   <span className={`h-2 w-2 rounded-full ${bug.severity === 'Critical' ? 'bg-[#FF6978]' : 'bg-[#FFB454]'}`} />
                   <span className="font-mono text-[11px] font-semibold text-[#6EA8FF]">{bug.id}</span>
@@ -330,7 +335,7 @@ const TaskList = ({ tasks }) => (
       <thead className="border-b border-[#242D40] bg-[#171E2B] text-[11px] uppercase tracking-wider text-[#78849A]">
         <tr>{['Key', 'Summary', 'Status', 'Priority', 'Assignee', 'Due date'].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
       </thead>
-      <tbody>{tasks.map((task) => <tr key={task.id} className="border-b border-[#20283A] last:border-0 hover:bg-[#192131]"><td className="px-4 py-3 font-mono font-semibold text-[#6EA8FF]"><Link to={`/issues/${task.id}`} className="hover:underline">{task.id}</Link></td><td className="px-4 py-3 font-medium text-[#E6EBF3]"><Link to={`/issues/${task.id}`} className="hover:text-[#B7D5FF]">{task.title}</Link></td><td className="px-4 py-3 text-[#AAB5C7]">{task.status}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.priority}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.owner}</td><td className="px-4 py-3 text-[#78849A]">{task.due}</td></tr>)}</tbody>
+      <tbody>{filteredTasks.map((task) => <tr key={task.id} className="border-b border-[#20283A] last:border-0 hover:bg-[#192131]"><td className="px-4 py-3 font-mono font-semibold text-[#6EA8FF]"><Link to={`/issues/${task.id}`} className="hover:underline">{task.id}</Link></td><td className="px-4 py-3 font-medium text-[#E6EBF3]"><Link to={`/issues/${task.id}`} className="hover:text-[#B7D5FF]">{task.title}</Link></td><td className="px-4 py-3 text-[#AAB5C7]">{task.status}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.priority}</td><td className="px-4 py-3 text-[#AAB5C7]">{task.owner}</td><td className="px-4 py-3 text-[#78849A]">{task.due}</td></tr>)}</tbody>
     </table>
   </div>
 )

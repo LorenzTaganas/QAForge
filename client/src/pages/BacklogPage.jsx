@@ -8,7 +8,7 @@ import { useQA } from '../context/QAContext'
 const statuses = ['To Do', 'In Progress', 'In Review', 'Done']
 
 const BacklogPage = () => {
-  const { tasks, sprints, updateTaskStatus, updateIssue, setIsCreateModalOpen, searchQuery } = useQA()
+  const { tasks, sprints, selectedProjectKey, updateTaskStatus, updateIssue, setIsCreateModalOpen, searchQuery } = useQA()
   const [statusFilter, setStatusFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [sprintFilter, setSprintFilter] = useState('All')
@@ -16,11 +16,13 @@ const BacklogPage = () => {
   const activeSprint = sprints.find((sprint) => sprint.status === 'Active')
   const visibleTasks = useMemo(() => tasks.filter((task) => {
     const query = searchQuery.toLowerCase()
-    return (!query || task.id.toLowerCase().includes(query) || task.title.toLowerCase().includes(query)) &&
+    const belongsToProject = task.projectKey ? task.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
+    return belongsToProject &&
+      (!query || task.id.toLowerCase().includes(query) || task.title.toLowerCase().includes(query)) &&
       (statusFilter === 'All' || task.status === statusFilter) &&
       (priorityFilter === 'All' || task.priority === priorityFilter) &&
       (sprintFilter === 'All' || (sprintFilter === 'Unassigned' ? !task.sprintId : task.sprintId === sprintFilter))
-  }), [searchQuery, statusFilter, priorityFilter, sprintFilter, tasks])
+  }), [searchQuery, selectedProjectKey, statusFilter, priorityFilter, sprintFilter, tasks])
   const columns = useMemo(
     () => statuses.map((name) => ({ name, tasks: visibleTasks.filter((task) => task.status === name) })),
     [visibleTasks],

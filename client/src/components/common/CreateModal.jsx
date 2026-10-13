@@ -4,7 +4,7 @@ import { useQA } from '../../context/QAContext'
 import { useAuth } from '../../context/AuthContext'
 
 const CreateModal = ({ isOpen, onClose }) => {
-  const { addTask, addRequirement, addTestCase, addBug, projects, sprints, epics } = useQA()
+  const { addTask, addRequirement, addTestCase, addBug, projects, selectedProjectKey, sprints, epics } = useQA()
   const { user } = useAuth()
   const [entityType, setEntityType] = useState('Task')
   const [formData, setFormData] = useState({
@@ -17,7 +17,7 @@ const CreateModal = ({ isOpen, onClose }) => {
     assignee: 'Developer',
     due: 'Oct 30, 2026',
     environment: 'Staging',
-    projectKey: 'QAR',
+    projectKey: selectedProjectKey || 'QAR',
     sprintId: '',
     epicId: '',
     labels: '',
@@ -90,7 +90,7 @@ const CreateModal = ({ isOpen, onClose }) => {
       assignee: 'Developer',
       due: 'Oct 30, 2026',
       environment: 'Staging',
-      projectKey: 'QAR',
+      projectKey: selectedProjectKey || 'QAR',
       sprintId: '',
       epicId: '',
       labels: '',

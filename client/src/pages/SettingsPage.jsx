@@ -4,19 +4,12 @@ import { Save, Users, Bell, Shield, Sliders } from 'lucide-react'
 import { useQA } from '../context/QAContext'
 
 const SettingsPage = () => {
-  const { showToast } = useQA()
-  const [projectSettings, setProjectSettings] = useState({
-    name: 'QAForge Core Platform',
-    key: 'QAR',
-    defaultEnv: 'Staging',
-    autoCloseDefects: true,
-    slackWebhook: 'https://hooks.slack.com/services/T00/B00/X00',
-    notifyOnFailure: true,
-  })
+  const { projectSettings, updateProjectSettings, showToast } = useQA()
+  const [draftSettings, setDraftSettings] = useState(projectSettings)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setProjectSettings((prev) => ({
+    setDraftSettings((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }))
@@ -24,6 +17,19 @@ const SettingsPage = () => {
 
   const handleSave = (e) => {
     e.preventDefault()
+    const trimmedSettings = {
+      ...draftSettings,
+      name: draftSettings.name.trim(),
+      key: draftSettings.key.trim().toUpperCase(),
+      slackWebhook: draftSettings.slackWebhook.trim(),
+    }
+
+    if (!trimmedSettings.name || !trimmedSettings.key) {
+      showToast('Project name and key are required')
+      return
+    }
+
+    updateProjectSettings(trimmedSettings)
     showToast('Project settings saved successfully')
   }
 
@@ -66,7 +72,7 @@ const SettingsPage = () => {
                 id="name"
                 name="name"
                 type="text"
-                value={projectSettings.name}
+                value={draftSettings.name}
                 onChange={handleChange}
                 className="input-field text-xs"
               />
@@ -80,7 +86,7 @@ const SettingsPage = () => {
                 id="key"
                 name="key"
                 type="text"
-                value={projectSettings.key}
+                value={draftSettings.key}
                 onChange={handleChange}
                 className="input-field text-xs uppercase"
               />
@@ -94,7 +100,7 @@ const SettingsPage = () => {
             <select
               id="defaultEnv"
               name="defaultEnv"
-              value={projectSettings.defaultEnv}
+              value={draftSettings.defaultEnv}
               onChange={handleChange}
               className="input-field text-xs sm:w-1/2"
             >
@@ -156,7 +162,7 @@ const SettingsPage = () => {
               <input
                 type="checkbox"
                 name="notifyOnFailure"
-                checked={projectSettings.notifyOnFailure}
+                checked={draftSettings.notifyOnFailure}
                 onChange={handleChange}
                 className="h-4 w-4 rounded border-jira-border bg-jira-bg text-jira-blue focus:ring-0"
               />
@@ -167,12 +173,27 @@ const SettingsPage = () => {
               <input
                 type="checkbox"
                 name="autoCloseDefects"
-                checked={projectSettings.autoCloseDefects}
+                checked={draftSettings.autoCloseDefects}
                 onChange={handleChange}
                 className="h-4 w-4 rounded border-jira-border bg-jira-bg text-jira-blue focus:ring-0"
               />
               <span>Automatically close defect when associated test case passes twice</span>
             </label>
+
+            <div className="pt-2">
+              <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="slackWebhook">
+                Slack webhook URL <span className="font-normal text-jira-muted">(optional)</span>
+              </label>
+              <input
+                id="slackWebhook"
+                name="slackWebhook"
+                type="url"
+                value={draftSettings.slackWebhook}
+                onChange={handleChange}
+                placeholder="https://hooks.slack.com/services/..."
+                className="input-field text-xs"
+              />
+            </div>
           </div>
         </div>
       </div>

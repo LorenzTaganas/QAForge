@@ -1,11 +1,13 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Search, Plus, Bell, HelpCircle, LogOut, X, CheckCircle, FileText, Bug, CheckSquare } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useQA } from '../../context/QAContext'
 import CreateModal from '../common/CreateModal'
+import { useNavigate } from 'react-router-dom'
 
 const Header = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const {
     tasks,
     requirements,
@@ -15,27 +17,44 @@ const Header = () => {
     setSearchQuery,
     isCreateModalOpen,
     setIsCreateModalOpen,
-    showToast,
   } = useQA()
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
 
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        event.preventDefault()
+        document.getElementById('global-search')?.focus()
+      }
+
+      if (event.key === 'Escape') {
+        setShowSearchResults(false)
+        setShowNotifications(false)
+        setShowHelp(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleShortcut)
+    return () => window.removeEventListener('keydown', handleShortcut)
+  }, [])
+
   // Search matches
   const searchResults = searchQuery.trim()
     ? [
         ...tasks
-          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
           .map((t) => ({ ...t, category: 'Task', icon: CheckCircle, link: '/' })),
         ...requirements
-          .filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.toLowerCase().includes(searchQuery.toLowerCase()))
           .map((r) => ({ ...r, category: 'Requirement', icon: FileText, link: '/requirements' })),
         ...testCases
-          .filter((tc) => tc.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter((tc) => tc.title.toLowerCase().includes(searchQuery.toLowerCase()) || tc.id.toLowerCase().includes(searchQuery.toLowerCase()))
           .map((tc) => ({ ...tc, category: 'Test Case', icon: CheckSquare, link: '/test-cases' })),
         ...bugs
-          .filter((b) => b.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter((b) => b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.id.toLowerCase().includes(searchQuery.toLowerCase()))
           .map((b) => ({ ...b, category: 'Bug', icon: Bug, link: '/bugs' })),
       ].slice(0, 6)
     : []
@@ -56,19 +75,19 @@ const Header = () => {
 
           <div className="hidden items-center gap-1 text-sm md:flex">
             <button
-              onClick={() => showToast('Switched project scope to QAForge Core')}
+              onClick={() => navigate('/')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Workspaces
             </button>
             <button
-              onClick={() => showToast('Viewing default sprint: Sprint 24.4')}
+              onClick={() => navigate('/')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Projects
             </button>
             <button
-              onClick={() => showToast('Quick filter: High priority items')}
+              onClick={() => navigate('/')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Filters
@@ -81,6 +100,7 @@ const Header = () => {
           <div className="relative w-full">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-jira-muted" />
             <input
+              id="global-search"
               type="text"
               value={searchQuery}
               onChange={(e) => {
@@ -126,8 +146,9 @@ const Header = () => {
                       <div
                         key={item.id}
                         onClick={() => {
+                          navigate(item.link)
+                          setSearchQuery('')
                           setShowSearchResults(false)
-                          showToast(`Opened ${item.id}: ${item.title}`)
                         }}
                         className="flex cursor-pointer items-center justify-between rounded p-2 text-xs hover:bg-jira-surface-2 transition"
                       >

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 
 const QAContext = createContext()
 
@@ -35,30 +35,52 @@ const initialBugs = [
   { id: 'BUG-304', title: 'Password field lacks minimum entropy validation', severity: 'Major', priority: 'High', status: 'Open', reporter: 'Security', assignee: 'Backend Dev', environment: 'Staging' },
 ]
 
+const initialProjectSettings = {
+  name: 'QAForge Core Platform',
+  key: 'QAR',
+  defaultEnv: 'Staging',
+  autoCloseDefects: true,
+  slackWebhook: '',
+  notifyOnFailure: true,
+}
+
+const loadStoredValue = (key, fallback) => {
+  try {
+    const saved = localStorage.getItem(key)
+    if (!saved) return fallback
+
+    const parsed = JSON.parse(saved)
+    return parsed ?? fallback
+  } catch {
+    localStorage.removeItem(key)
+    return fallback
+  }
+}
+
+const createUniqueId = (prefix, items, start) => {
+  const usedIds = new Set(items.map((item) => item.id))
+  let number = start
+
+  while (usedIds.has(`${prefix}-${number}`)) {
+    number += 1
+  }
+
+  return `${prefix}-${number}`
+}
+
 export const QAProvider = ({ children }) => {
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('qaforge-tasks')
-    return saved ? JSON.parse(saved) : initialTasks
-  })
-
-  const [requirements, setRequirements] = useState(() => {
-    const saved = localStorage.getItem('qaforge-requirements')
-    return saved ? JSON.parse(saved) : initialRequirements
-  })
-
-  const [testCases, setTestCases] = useState(() => {
-    const saved = localStorage.getItem('qaforge-testcases')
-    return saved ? JSON.parse(saved) : initialTestCases
-  })
-
-  const [bugs, setBugs] = useState(() => {
-    const saved = localStorage.getItem('qaforge-bugs')
-    return saved ? JSON.parse(saved) : initialBugs
-  })
+  const [tasks, setTasks] = useState(() => loadStoredValue('qaforge-tasks', initialTasks))
+  const [requirements, setRequirements] = useState(() => loadStoredValue('qaforge-requirements', initialRequirements))
+  const [testCases, setTestCases] = useState(() => loadStoredValue('qaforge-testcases', initialTestCases))
+  const [bugs, setBugs] = useState(() => loadStoredValue('qaforge-bugs', initialBugs))
+  const [projectSettings, setProjectSettings] = useState(() =>
+    loadStoredValue('qaforge-settings', initialProjectSettings),
+  )
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
+  const toastTimer = useRef(null)
 
   // Save changes to localStorage
   useEffect(() => {
@@ -77,16 +99,27 @@ export const QAProvider = ({ children }) => {
     localStorage.setItem('qaforge-bugs', JSON.stringify(bugs))
   }, [bugs])
 
+  useEffect(() => {
+    localStorage.setItem('qaforge-settings', JSON.stringify(projectSettings))
+  }, [projectSettings])
+
+  useEffect(() => () => clearTimeout(toastTimer.current), [])
+
   const showToast = (message) => {
+    clearTimeout(toastTimer.current)
     setToastMessage(message)
-    setTimeout(() => setToastMessage(null), 3000)
+    toastTimer.current = setTimeout(() => setToastMessage(null), 3000)
+  }
+
+  const updateProjectSettings = (updates) => {
+    setProjectSettings((previous) => ({ ...previous, ...updates }))
   }
 
   // Task actions
   const addTask = (task) => {
     const newTask = {
       ...task,
-      id: `QAR-${Math.floor(100 + Math.random() * 900)}`,
+      id: createUniqueId('QAR', tasks, 100),
       status: task.status || 'To Do',
       priority: task.priority || 'Medium',
       due: task.due || 'Oct 20, 2026',
@@ -112,7 +145,7 @@ export const QAProvider = ({ children }) => {
   const addRequirement = (req) => {
     const newReq = {
       ...req,
-      id: `REQ-${Math.floor(100 + Math.random() * 900)}`,
+      id: createUniqueId('REQ', requirements, 100),
       status: req.status || 'Draft',
       priority: req.priority || 'Medium',
     }
@@ -137,7 +170,7 @@ export const QAProvider = ({ children }) => {
   const addTestCase = (tc) => {
     const newTc = {
       ...tc,
-      id: `TC-${Math.floor(200 + Math.random() * 800)}`,
+      id: createUniqueId('TC', testCases, 200),
       status: tc.status || 'Ready',
       priority: tc.priority || 'Medium',
       type: tc.type || 'Functional',
@@ -165,7 +198,7 @@ export const QAProvider = ({ children }) => {
   const addBug = (bug) => {
     const newBug = {
       ...bug,
-      id: `BUG-${Math.floor(300 + Math.random() * 700)}`,
+      id: createUniqueId('BUG', bugs, 300),
       status: 'Open',
       severity: bug.severity || 'Major',
       priority: bug.priority || 'High',
@@ -194,12 +227,14 @@ export const QAProvider = ({ children }) => {
         requirements,
         testCases,
         bugs,
+        projectSettings,
         searchQuery,
         setSearchQuery,
         isCreateModalOpen,
         setIsCreateModalOpen,
         toastMessage,
         showToast,
+        updateProjectSettings,
         addTask,
         updateTaskStatus,
         deleteTask,

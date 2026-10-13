@@ -78,7 +78,7 @@ const BugsPage = () => {
           <div className="flex flex-wrap items-center gap-4 rounded-lg border border-jira-border bg-jira-surface/80 p-3 text-xs animate-fade-in">
             <div className="flex items-center gap-2">
               <span className="text-jira-muted font-medium">Severity:</span>
-              {['All', 'Blocker', 'Critical', 'Major', 'Minor'].map((s) => (
+              {['All', 'Blocker', 'Critical', 'Major', 'Minor', 'Trivial'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setSeverityFilter(s)}

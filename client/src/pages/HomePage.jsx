@@ -44,6 +44,15 @@ const HomePage = () => {
     ]
   }, [tasks])
 
+  const timelineTasks = useMemo(() => {
+    return [...filteredTasks].sort((a, b) => {
+      const first = new Date(a.due).getTime()
+      const second = new Date(b.due).getTime()
+      return (Number.isNaN(first) ? Number.MAX_SAFE_INTEGER : first) -
+        (Number.isNaN(second) ? Number.MAX_SAFE_INTEGER : second)
+    })
+  }, [filteredTasks])
+
   const handleShare = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href)
@@ -215,12 +224,31 @@ const HomePage = () => {
         )}
 
         {activeTab === 'Timeline' && (
-          <div className="rounded-lg border border-jira-border bg-jira-surface/40 p-6 text-center text-xs text-jira-muted">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-jira-surface-2 text-jira-muted mb-2">
-              <Calendar size={18} />
+          <div className="rounded-lg border border-jira-border bg-jira-surface/40 p-5">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-jira-surface-2 text-jira-muted">
+                <Calendar size={18} />
+              </div>
+              <div>
+                <p className="font-semibold text-white">Sprint 24.4 Timeline</p>
+                <p className="mt-1 text-xs text-jira-muted">Scheduled: Oct 1, 2026 - Oct 28, 2026</p>
+              </div>
             </div>
-            <p className="font-semibold text-white">Sprint 24.4 Timeline</p>
-            <p className="mt-1">Scheduled: Oct 1, 2026 - Oct 28, 2026 (14 working days remaining)</p>
+            {timelineTasks.length === 0 ? (
+              <p className="py-8 text-center text-xs text-jira-muted">No scheduled issues match the current filters.</p>
+            ) : (
+              <div className="space-y-3">
+                {timelineTasks.map((task) => (
+                  <div key={task.id} className="flex items-center gap-3 rounded-md border border-jira-border/60 bg-jira-surface-2/40 p-3">
+                    <Clock size={14} className="shrink-0 text-jira-blue" />
+                    <span className="w-24 shrink-0 font-mono text-[11px] font-semibold text-jira-blue">{task.id}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-white">{task.title}</span>
+                    <span className="shrink-0 text-[11px] text-jira-muted">{task.due || 'No due date'}</span>
+                    <span className="shrink-0 rounded bg-jira-surface-3 px-2 py-0.5 text-[10px] text-jira-text">{task.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

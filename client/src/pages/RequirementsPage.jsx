@@ -94,7 +94,7 @@ const RequirementsPage = () => {
           <div className="flex flex-wrap items-center gap-4 rounded-lg border border-jira-border bg-jira-surface/80 p-3 text-xs animate-fade-in">
             <div className="flex items-center gap-2">
               <span className="text-jira-muted font-medium">Status:</span>
-              {['All', 'Draft', 'In Review', 'Approved'].map((s) => (
+              {['All', 'Draft', 'In Review', 'Approved', 'Implemented', 'Rejected'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}

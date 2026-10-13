@@ -290,6 +290,17 @@ export const QAProvider = ({ children }) => {
     setRequirements((previous) => update(previous))
     setTestCases((previous) => update(previous))
     setBugs((previous) => update(previous))
+    const changedFields = Object.keys(updates).join(', ')
+    setActivity((previous) => [
+      {
+        id: `activity-${Date.now()}`,
+        issueId,
+        action: `updated ${changedFields}`,
+        actor: 'You',
+        createdAt: 'Just now',
+      },
+      ...previous,
+    ])
     showToast(`Updated ${issueId}`)
   }
 

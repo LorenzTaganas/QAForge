@@ -5,31 +5,32 @@ import { Plus, Filter, Download } from 'lucide-react'
 import { useQA } from '../context/QAContext'
 
 const RequirementsPage = () => {
-  const { requirements, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const { requirements, selectedProjectKey, setIsCreateModalOpen, showToast, searchQuery } = useQA()
   const [statusFilter, setStatusFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [showFilterBar, setShowFilterBar] = useState(false)
 
   const filteredRequirements = useMemo(() => {
     return requirements.filter((req) => {
+      const belongsToProject = req.projectKey ? req.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
       const matchSearch = searchQuery
         ? req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           req.id.toLowerCase().includes(searchQuery.toLowerCase())
         : true
       const matchStatus = statusFilter === 'All' ? true : req.status === statusFilter
       const matchPriority = priorityFilter === 'All' ? true : req.priority === priorityFilter
-      return matchSearch && matchStatus && matchPriority
+      return belongsToProject && matchSearch && matchStatus && matchPriority
     })
-  }, [requirements, searchQuery, statusFilter, priorityFilter])
+  }, [requirements, selectedProjectKey, searchQuery, statusFilter, priorityFilter])
 
   const handleExportCSV = () => {
-    if (requirements.length === 0) {
+    if (filteredRequirements.length === 0) {
       showToast('No requirements to export')
       return
     }
 
     const headers = ['Key', 'Title', 'Owner', 'Priority', 'Status', 'Description']
-    const rows = requirements.map((r) => [
+    const rows = filteredRequirements.map((r) => [
       `"${r.id}"`,
       `"${r.title.replace(/"/g, '""')}"`,
       `"${r.owner}"`,

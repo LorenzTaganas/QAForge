@@ -17,7 +17,7 @@ const severityStyles = {
 const statusOptions = ['Open', 'In Progress', 'Resolved', 'Closed']
 
 const BugsPage = () => {
-  const { bugs, updateBugStatus, deleteBug, setIsCreateModalOpen, searchQuery } = useQA()
+  const { bugs, selectedProjectKey, updateBugStatus, deleteBug, setIsCreateModalOpen, searchQuery } = useQA()
   const { user } = useAuth()
   const canDelete = canDeleteIssue(user?.role)
   const [severityFilter, setSeverityFilter] = useState('All')
@@ -27,15 +27,16 @@ const BugsPage = () => {
 
   const filteredBugs = useMemo(() => {
     return bugs.filter((bug) => {
+      const belongsToProject = bug.projectKey ? bug.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
       const matchSearch = searchQuery
         ? bug.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           bug.id.toLowerCase().includes(searchQuery.toLowerCase())
         : true
       const matchSeverity = severityFilter === 'All' ? true : bug.severity === severityFilter
       const matchStatus = statusFilter === 'All' ? true : bug.status === statusFilter
-      return matchSearch && matchSeverity && matchStatus
+      return belongsToProject && matchSearch && matchSeverity && matchStatus
     })
-  }, [bugs, searchQuery, severityFilter, statusFilter])
+  }, [bugs, selectedProjectKey, searchQuery, severityFilter, statusFilter])
 
   const stats = useMemo(() => {
     return {

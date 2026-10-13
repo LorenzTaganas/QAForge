@@ -21,7 +21,7 @@ const resultStyles = {
 }
 
 const TestCasesPage = () => {
-  const { testCases, executeTestCase, deleteTestCase, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const { testCases, selectedProjectKey, executeTestCase, deleteTestCase, setIsCreateModalOpen, showToast, searchQuery } = useQA()
   const { user } = useAuth()
   const canDelete = canDeleteIssue(user?.role)
   const [typeFilter, setTypeFilter] = useState('All')
@@ -31,15 +31,16 @@ const TestCasesPage = () => {
 
   const filteredTestCases = useMemo(() => {
     return testCases.filter((tc) => {
+      const belongsToProject = tc.projectKey ? tc.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
       const matchSearch = searchQuery
         ? tc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           tc.id.toLowerCase().includes(searchQuery.toLowerCase())
         : true
       const matchType = typeFilter === 'All' ? true : tc.type === typeFilter
       const matchResult = resultFilter === 'All' ? true : tc.lastResult === resultFilter
-      return matchSearch && matchType && matchResult
+      return belongsToProject && matchSearch && matchType && matchResult
     })
-  }, [testCases, searchQuery, typeFilter, resultFilter])
+  }, [testCases, selectedProjectKey, searchQuery, typeFilter, resultFilter])
 
   const stats = useMemo(() => {
     return {

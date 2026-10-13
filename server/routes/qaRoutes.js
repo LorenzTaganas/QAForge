@@ -1,33 +1,8 @@
 const express = require('express')
-const fs = require('fs/promises')
-const path = require('path')
 const { authMiddleware } = require('../middleware/authMiddleware')
+const { readQaStore, queueQaStoreWrite } = require('../data/qaStore')
 
 const router = express.Router()
-const storePath = path.join(__dirname, '..', 'data', 'qaStore.json')
-let writeQueue = Promise.resolve()
-
-const readStore = async () => {
-  try {
-    const contents = await fs.readFile(storePath, 'utf8')
-    return JSON.parse(contents)
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error
-    return {}
-  }
-}
-
-const writeStore = async (store) => {
-  await fs.mkdir(path.dirname(storePath), { recursive: true })
-  const temporaryPath = `${storePath}.tmp`
-  await fs.writeFile(temporaryPath, JSON.stringify(store, null, 2), 'utf8')
-  await fs.rename(temporaryPath, storePath)
-}
-
-const queueWrite = (store) => {
-  writeQueue = writeQueue.then(() => writeStore(store))
-  return writeQueue
-}
 
 const isSnapshot = (snapshot) => (
   snapshot &&
@@ -49,7 +24,7 @@ const pickSnapshotFields = (snapshot) => {
 
 router.get('/snapshot', authMiddleware, async (req, res, next) => {
   try {
-    const store = await readStore()
+    const store = await readQaStore()
     return res.status(200).json({
       success: true,
       snapshot: store[req.user.id] || null,
@@ -68,12 +43,12 @@ router.put('/snapshot', authMiddleware, async (req, res, next) => {
       })
     }
 
-    const store = await readStore()
+    const store = await readQaStore()
     store[req.user.id] = {
       ...pickSnapshotFields(req.body),
       updatedAt: new Date().toISOString(),
     }
-    await queueWrite(store)
+    await queueQaStoreWrite(store)
 
     return res.status(200).json({
       success: true,

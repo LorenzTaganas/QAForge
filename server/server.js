@@ -4,6 +4,8 @@ const dotenv = require('dotenv')
 const morgan = require('morgan')
 const authRoutes = require('./routes/authRoutes')
 const qaRoutes = require('./routes/qaRoutes')
+const projectRoutes = require('./routes/projectRoutes')
+const requirementRoutes = require('./routes/requirementRoutes')
 
 dotenv.config()
 
@@ -24,6 +26,8 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/qa', qaRoutes)
+app.use('/api/projects', projectRoutes)
+app.use('/api/requirements', requirementRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

@@ -286,27 +286,51 @@ export const QAProvider = ({ children }) => {
   }
 
   // Requirement actions
-  const addRequirement = (req) => {
-    const newReq = {
+  const addRequirement = async (req) => {
+    let newReq = {
       ...req,
       id: createUniqueId('REQ', requirements, 100),
       status: req.status || 'Draft',
       priority: req.priority || 'Medium',
     }
+    let mutationMessageShown = false
+    try {
+      const response = await api.post('/requirements', req)
+      if (response.data?.requirement) newReq = response.data.requirement
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not save requirement')
+      } else {
+        showToast('Requirement saved locally; server is unavailable')
+      }
+      mutationMessageShown = true
+    }
     setRequirements((prev) => [newReq, ...prev])
-    showToast(`Added requirement ${newReq.id}`)
+    if (!mutationMessageShown) showToast(`Added requirement ${newReq.id}`)
     return newReq
   }
 
-  const deleteRequirement = (id) => {
+  const deleteRequirement = async (id) => {
     setRequirements((prev) => prev.filter((r) => r.id !== id))
+    try {
+      await api.delete(`/requirements/${id}`)
+    } catch (error) {
+      if (error.response) showToast(error.response.data?.message || 'Could not remove requirement')
+      else showToast('Requirement removed locally; server is unavailable')
+    }
     showToast(`Removed requirement ${id}`)
   }
 
-  const updateRequirementStatus = (id, newStatus) => {
+  const updateRequirementStatus = async (id, newStatus) => {
     setRequirements((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
     )
+    try {
+      await api.patch(`/requirements/${id}`, { status: newStatus })
+    } catch (error) {
+      if (error.response) showToast(error.response.data?.message || 'Could not update requirement')
+      else showToast('Requirement updated locally; server is unavailable')
+    }
     showToast(`Requirement status updated`)
   }
 
@@ -421,8 +445,18 @@ export const QAProvider = ({ children }) => {
     showToast('Comment added')
   }
 
-  const addProject = (project) => {
-    const created = { ...project, id: `proj-${Date.now()}`, status: 'Active' }
+  const addProject = async (project) => {
+    let created = { ...project, id: `proj-${Date.now()}`, status: 'Active' }
+    try {
+      const response = await api.post('/projects', project)
+      if (response.data?.project) created = response.data.project
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create project')
+        return null
+      }
+      showToast('Project created locally; server is unavailable')
+    }
     setProjects((previous) => [created, ...previous])
     showToast(`Created project ${created.key}`)
     return created

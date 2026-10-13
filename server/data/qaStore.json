@@ -313,7 +313,7 @@
         "id": "SPRINT-24-4",
         "name": "Sprint 24.4",
         "goal": "Stabilize authentication and payment flows",
-        "status": "Active",
+        "status": "Planned",
         "start": "Oct 1, 2026",
         "end": "Oct 28, 2026",
         "projectKey": "QAR"
@@ -322,7 +322,7 @@
         "id": "SPRINT-24-5",
         "name": "Sprint 24.5",
         "goal": "Improve release reporting and traceability",
-        "status": "Planned",
+        "status": "Active",
         "start": "Oct 29, 2026",
         "end": "Nov 12, 2026",
         "projectKey": "QAR"
@@ -505,6 +505,6 @@
         "environment": "QA"
       }
     ],
-    "updatedAt": "2026-10-13T06:05:18.085Z"
+    "updatedAt": "2026-10-13T06:13:52.084Z"
   }
 }

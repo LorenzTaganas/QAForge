@@ -335,8 +335,8 @@ export const QAProvider = ({ children }) => {
   }
 
   // Test Case actions
-  const addTestCase = (tc) => {
-    const newTc = {
+  const addTestCase = async (tc) => {
+    let newTc = {
       ...tc,
       id: createUniqueId('TC', testCases, 200),
       status: tc.status || 'Ready',
@@ -345,15 +345,28 @@ export const QAProvider = ({ children }) => {
       lastResult: 'Pending',
       steps: tc.steps || ['Verify acceptance criteria', 'Check system behavior'],
     }
+    let mutationMessageShown = false
+    try {
+      const response = await api.post('/test-cases', tc)
+      if (response.data?.testCase) newTc = response.data.testCase
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Test case saved locally; server is unavailable')
+      mutationMessageShown = true
+    }
     setTestCases((prev) => [newTc, ...prev])
-    showToast(`Added test case ${newTc.id}`)
+    if (!mutationMessageShown) showToast(`Added test case ${newTc.id}`)
     return newTc
   }
 
-  const executeTestCase = (id, result) => {
+  const executeTestCase = async (id, result) => {
     setTestCases((prev) =>
       prev.map((tc) => (tc.id === id ? { ...tc, lastResult: result } : tc))
     )
+    try {
+      await api.patch(`/test-cases/${id}`, { lastResult: result })
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Test result updated locally; server is unavailable')
+    }
     showToast(`Test ${id} marked as ${result}`)
   }
 
@@ -377,36 +390,69 @@ export const QAProvider = ({ children }) => {
     return run
   }
 
-  const deleteTestCase = (id) => {
-    setTestCases((prev) => prev.filter((tc) => tc.id !== id))
-    showToast(`Deleted test case ${id}`)
+  const deleteTestCase = async (id) => {
+    try {
+      await api.delete(`/test-cases/${id}`)
+      setTestCases((prev) => prev.filter((tc) => tc.id !== id))
+      showToast(`Deleted test case ${id}`)
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not delete test case')
+      } else {
+        setTestCases((prev) => prev.filter((tc) => tc.id !== id))
+        showToast('Test case removed locally; server is unavailable')
+      }
+    }
   }
 
   // Bug actions
-  const addBug = (bug) => {
-    const newBug = {
+  const addBug = async (bug) => {
+    let newBug = {
       ...bug,
       id: createUniqueId('BUG', bugs, 300),
       status: 'Open',
       severity: bug.severity || 'Major',
       priority: bug.priority || 'High',
     }
+    let mutationMessageShown = false
+    try {
+      const response = await api.post('/bugs', bug)
+      if (response.data?.bug) newBug = response.data.bug
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Bug saved locally; server is unavailable')
+      mutationMessageShown = true
+    }
 
     setBugs((prev) => [newBug, ...prev])
-    showToast(`Logged defect ${newBug.id}`)
+    if (!mutationMessageShown) showToast(`Logged defect ${newBug.id}`)
     return newBug
   }
 
-  const updateBugStatus = (id, newStatus) => {
+  const updateBugStatus = async (id, newStatus) => {
     setBugs((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
     )
+    try {
+      await api.patch(`/bugs/${id}`, { status: newStatus })
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Bug updated locally; server is unavailable')
+    }
     showToast(`Bug ${id} updated to ${newStatus}`)
   }
 
-  const deleteBug = (id) => {
-    setBugs((prev) => prev.filter((b) => b.id !== id))
-    showToast(`Deleted defect ${id}`)
+  const deleteBug = async (id) => {
+    try {
+      await api.delete(`/bugs/${id}`)
+      setBugs((prev) => prev.filter((b) => b.id !== id))
+      showToast(`Deleted defect ${id}`)
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not delete defect')
+      } else {
+        setBugs((prev) => prev.filter((b) => b.id !== id))
+        showToast('Bug removed locally; server is unavailable')
+      }
+    }
   }
 
   const updateIssue = (issueId, updates) => {

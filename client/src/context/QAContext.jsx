@@ -164,6 +164,21 @@ export const QAProvider = ({ children }) => {
         if (snapshot.comments) setComments(snapshot.comments)
         if (snapshot.activity) setActivity(snapshot.activity)
         if (snapshot.testRuns) setTestRuns(snapshot.testRuns)
+
+        return Promise.all([
+          api.get('/projects'),
+          api.get('/requirements'),
+          api.get('/test-cases'),
+          api.get('/bugs'),
+          api.get('/test-runs'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse]) => {
+          if (cancelled) return
+          if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
+          if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
+          if (testCaseResponse.data?.testCases) setTestCases(testCaseResponse.data.testCases)
+          if (bugResponse.data?.bugs) setBugs(bugResponse.data.bugs)
+          if (testRunResponse.data?.testRuns) setTestRuns(testRunResponse.data.testRuns)
+        })
       })
       .catch(() => {
         // The local cache remains available when the optional sync endpoint is unavailable.
@@ -220,7 +235,6 @@ export const QAProvider = ({ children }) => {
         projectSettings,
         projects,
         selectedProjectKey,
-        setSelectedProjectKey,
         epics,
         sprints,
         comments,

@@ -40,6 +40,7 @@ const IssueDetailPage = () => {
     addComment,
   } = useQA()
   const [comment, setComment] = useState('')
+  const [commentAttachment, setCommentAttachment] = useState(null)
   const [editing, setEditing] = useState(false)
   const [linkTarget, setLinkTarget] = useState('')
 
@@ -82,8 +83,9 @@ const IssueDetailPage = () => {
   const submitComment = (event) => {
     event.preventDefault()
     if (!comment.trim()) return
-    addComment(issue.id, comment)
+    addComment(issue.id, comment, 'You', commentAttachment)
     setComment('')
+    setCommentAttachment(null)
   }
 
   return (
@@ -125,15 +127,40 @@ const IssueDetailPage = () => {
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><MessageSquare size={16} className="text-[#6EA8FF]" /> Comments</h2>
                 <span className="text-xs text-[#78849A]">{issueComments.length}</span>
               </div>
-              <form onSubmit={submitComment} className="flex flex-col gap-3 sm:flex-row">
+              <form onSubmit={submitComment} className="flex flex-col gap-3">
                 <textarea value={comment} onChange={(event) => setComment(event.target.value)} rows={2} placeholder="Add an update or ask a question..." className="input-field resize-none" />
-                <button className="btn-primary self-end sm:self-start"><Plus size={14} /> Comment</button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[#AAB5C7] hover:text-white">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        if (!file) return
+                        if (file.size > 500 * 1024) return
+                        const reader = new FileReader()
+                        reader.onload = () => setCommentAttachment({ name: file.name, type: file.type, data: reader.result })
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+                    <span className="rounded border border-[#2B3345] px-2.5 py-1.5">Attach screenshot</span>
+                    {commentAttachment && <span className="max-w-[14rem] truncate text-[#6EA8FF]">{commentAttachment.name}</span>}
+                  </label>
+                  <button className="btn-primary self-end sm:self-start"><Plus size={14} /> Comment</button>
+                </div>
               </form>
               <div className="mt-5 space-y-3">
                 {issueComments.length ? issueComments.map((item) => (
                   <div key={item.id} className="rounded-lg border border-[#242D40] bg-[#141A26] p-3">
                     <div className="flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-white">{item.author}</span><span className="text-[#78849A]">{formatTimestamp(item.createdAt)}</span></div>
                     <p className="mt-2 text-sm leading-6 text-[#AAB5C7]">{item.body}</p>
+                    {item.attachment?.data && (
+                      <a href={item.attachment.data} target="_blank" rel="noreferrer" className="mt-3 block max-w-sm overflow-hidden rounded-lg border border-[#2B3345]">
+                        <img src={item.attachment.data} alt={item.attachment.name || 'Attached evidence'} className="max-h-56 w-full object-contain" />
+                        <span className="block border-t border-[#2B3345] px-3 py-2 text-[11px] text-[#6EA8FF]">{item.attachment.name}</span>
+                      </a>
+                    )}
                   </div>
                 )) : <p className="py-5 text-center text-xs text-jira-muted">No comments yet. Add the first update.</p>}
               </div>

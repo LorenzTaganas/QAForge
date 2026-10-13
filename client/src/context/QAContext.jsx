@@ -173,7 +173,8 @@ export const QAProvider = ({ children }) => {
           api.get('/test-runs'),
           api.get('/comments'),
           api.get('/activity'),
-        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse]) => {
+          api.get('/tasks'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse]) => {
           if (cancelled) return
           if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
           if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
@@ -182,6 +183,7 @@ export const QAProvider = ({ children }) => {
           if (testRunResponse.data?.testRuns) setTestRuns(testRunResponse.data.testRuns)
           if (commentsResponse.data?.comments) setComments(commentsResponse.data.comments)
           if (activityResponse.data?.activity) setActivity(activityResponse.data.activity)
+          if (taskResponse.data?.tasks) setTasks(taskResponse.data.tasks)
         })
       })
       .catch(() => {
@@ -277,30 +279,53 @@ export const QAProvider = ({ children }) => {
   }
 
   // Task actions
-  const addTask = (task) => {
-    const newTask = {
+  const addTask = async (task) => {
+    let newTask = {
       ...task,
       id: createUniqueId('QAR', tasks, 100),
       status: task.status || 'To Do',
       priority: task.priority || 'Medium',
       due: task.due || 'Oct 20, 2026',
     }
+    let serverMessageShown = false
+    try {
+      const response = await api.post('/tasks', task)
+      if (response.data?.task) newTask = response.data.task
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Task saved locally; server is unavailable')
+      serverMessageShown = true
+    }
     setTasks((prev) => [newTask, ...prev])
-    showToast(`Created task ${newTask.id}`)
+    if (!serverMessageShown) showToast(`Created task ${newTask.id}`)
     return newTask
   }
 
-  const updateTaskStatus = (taskId, newStatus) => {
+  const updateTaskStatus = async (taskId, newStatus) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     )
     showToast(`Updated ${taskId} to ${newStatus}`)
     setActivity((previous) => [{ id: `activity-${Date.now()}`, issueId: taskId, action: `moved to ${newStatus}`, actor: 'You', createdAt: new Date().toISOString() }, ...previous])
+    try {
+      await api.patch(`/tasks/${taskId}`, { status: newStatus })
+      await api.post('/activity', { issueId: taskId, action: `moved to ${newStatus}` })
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Task updated locally; server is unavailable')
+    }
   }
 
-  const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId))
-    showToast(`Deleted task ${taskId}`)
+  const deleteTask = async (taskId) => {
+    try {
+      await api.delete(`/tasks/${taskId}`)
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      showToast(`Deleted task ${taskId}`)
+    } catch (error) {
+      if (error.response) showToast(error.response.data?.message || 'Could not delete task')
+      else {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId))
+        showToast('Task removed locally; server is unavailable')
+      }
+    }
   }
 
   // Requirement actions
@@ -502,7 +527,7 @@ export const QAProvider = ({ children }) => {
     showToast(`Updated ${issueId}`)
   }
 
-  const addComment = async (issueId, body, author = 'You') => {
+  const addComment = async (issueId, body, author = 'You', attachment = null) => {
     if (!body.trim()) return
 
     const localComment = { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: new Date().toISOString() }
@@ -510,7 +535,7 @@ export const QAProvider = ({ children }) => {
     let commentToAdd = localComment
     let activityToAdd = localActivity
     try {
-      const response = await api.post('/comments', { issueId, body: body.trim() })
+      const response = await api.post('/comments', { issueId, body: body.trim(), attachment })
       if (response.data?.comment) commentToAdd = response.data.comment
       if (response.data?.activity) activityToAdd = response.data.activity
     } catch (error) {

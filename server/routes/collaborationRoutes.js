@@ -32,6 +32,23 @@ router.post('/comments', async (req, res, next) => {
       body: req.body.body.trim(),
       createdAt: new Date().toISOString(),
     }
+    if (req.body.attachment) {
+      const attachment = req.body.attachment
+      if (
+        typeof attachment.name !== 'string' ||
+        typeof attachment.type !== 'string' ||
+        typeof attachment.data !== 'string' ||
+        !attachment.type.startsWith('image/') ||
+        attachment.data.length > 700000
+      ) {
+        return res.status(400).json({ success: false, message: 'Only image attachments up to 500 KB are supported.' })
+      }
+      comment.attachment = {
+        name: attachment.name.slice(0, 160),
+        type: attachment.type,
+        data: attachment.data,
+      }
+    }
     const comments = Array.isArray(snapshot.comments) ? snapshot.comments : []
     const activity = Array.isArray(snapshot.activity) ? snapshot.activity : []
     const event = {

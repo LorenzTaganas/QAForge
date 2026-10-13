@@ -10,6 +10,7 @@ const testCaseRoutes = require('./routes/testCaseRoutes')
 const bugRoutes = require('./routes/bugRoutes')
 const testRunRoutes = require('./routes/testRunRoutes')
 const collaborationRoutes = require('./routes/collaborationRoutes')
+const taskRoutes = require('./routes/taskRoutes')
 
 dotenv.config()
 
@@ -36,6 +37,7 @@ app.use('/api/test-cases', testCaseRoutes)
 app.use('/api/bugs', bugRoutes)
 app.use('/api/test-runs', testRunRoutes)
 app.use('/api', collaborationRoutes)
+app.use('/api/tasks', taskRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

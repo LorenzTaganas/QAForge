@@ -42,8 +42,28 @@ const CreateModal = ({ isOpen, onClose }) => {
     const handleEscape = (event) => {
       if (event.key === 'Escape' && !isSubmitting) onClose()
     }
+    const handleTab = (event) => {
+      if (event.key !== 'Tab') return
+      const dialog = document.getElementById('create-issue-dialog')
+      if (!dialog) return
+      const focusable = [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
     window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+    window.addEventListener('keydown', handleTab)
+    return () => {
+      window.removeEventListener('keydown', handleEscape)
+      window.removeEventListener('keydown', handleTab)
+    }
   }, [isOpen, isSubmitting, onClose])
 
   if (!isOpen) return null
@@ -105,20 +125,34 @@ const CreateModal = ({ isOpen, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="w-full max-w-lg rounded-xl border border-jira-border bg-jira-surface shadow-lift">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSubmitting) onClose()
+      }}
+    >
+      <div
+        id="create-issue-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-issue-title"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-jira-border bg-jira-surface shadow-lift"
+      >
         <div className="flex items-center justify-between border-b border-jira-border px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded bg-jira-blue/20 text-jira-blue">
               <CheckCircle size={16} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Create issue</h3>
+              <h3 id="create-issue-title" className="text-base font-bold text-white">Create issue</h3>
               <p className="mt-0.5 text-[11px] text-jira-muted">Add work to your QA project</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            disabled={isSubmitting}
+            aria-label="Close create issue dialog"
             className="rounded p-1 text-jira-muted hover:bg-jira-surface-2 hover:text-white transition"
           >
             <X size={18} />

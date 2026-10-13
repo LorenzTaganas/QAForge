@@ -174,7 +174,8 @@ export const QAProvider = ({ children }) => {
           api.get('/comments'),
           api.get('/activity'),
           api.get('/tasks'),
-        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse]) => {
+          api.get('/sprints'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse, sprintResponse]) => {
           if (cancelled) return
           if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
           if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
@@ -184,6 +185,7 @@ export const QAProvider = ({ children }) => {
           if (commentsResponse.data?.comments) setComments(commentsResponse.data.comments)
           if (activityResponse.data?.activity) setActivity(activityResponse.data.activity)
           if (taskResponse.data?.tasks) setTasks(taskResponse.data.tasks)
+          if (sprintResponse.data?.sprints) setSprints(sprintResponse.data.sprints)
         })
       })
       .catch(() => {
@@ -614,14 +616,24 @@ export const QAProvider = ({ children }) => {
     return created
   }
 
-  const addSprint = (sprint) => {
-    const created = { ...sprint, id: `SPRINT-${Date.now()}`, status: 'Planned' }
+  const addSprint = async (sprint) => {
+    let created = { ...sprint, id: `SPRINT-${Date.now()}`, status: 'Planned' }
+    try {
+      const response = await api.post('/sprints', sprint)
+      if (response.data?.sprint) created = response.data.sprint
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create sprint')
+        return null
+      }
+      showToast('Sprint created locally; server is unavailable')
+    }
     setSprints((previous) => [created, ...previous])
     showToast(`Created sprint ${created.name}`)
     return created
   }
 
-  const updateSprint = (sprintId, updates) => {
+  const updateSprint = async (sprintId, updates) => {
     setSprints((previous) =>
       previous.map((sprint) => {
         if (sprint.id === sprintId) return { ...sprint, ...updates }
@@ -629,7 +641,15 @@ export const QAProvider = ({ children }) => {
         return sprint
       }),
     )
-    showToast('Sprint updated')
+    try {
+      const response = await api.patch(`/sprints/${sprintId}`, updates)
+      if (response.data?.sprint) {
+        setSprints((previous) => previous.map((sprint) => sprint.id === sprintId ? response.data.sprint : sprint))
+      }
+      showToast('Sprint updated')
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Sprint updated locally; server is unavailable')
+    }
   }
 
   return (

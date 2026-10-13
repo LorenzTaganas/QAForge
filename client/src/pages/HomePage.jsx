@@ -49,7 +49,7 @@ const chartTooltipStyle = {
 
 const HomePage = () => {
   const { tasks, testCases, bugs, requirements, setIsCreateModalOpen, showToast, searchQuery } = useQA()
-  const [activeTab, setActiveTab] = useState('Analytics')
+  const [activeTab, setActiveTab] = useState('Board')
   const [selectedPriority, setSelectedPriority] = useState('All')
   const [selectedOwner, setSelectedOwner] = useState('All')
   const [showFilterBar, setShowFilterBar] = useState(false)
@@ -180,6 +180,8 @@ const HomePage = () => {
           </div>
         )}
 
+        {activeTab === 'Analytics' && (
+          <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <MetricCard label="Total executions" value={metrics.executions} icon={Activity} />
           <MetricCard label="Unique test cases" value={metrics.uniqueCases} icon={CheckCircle2} />
@@ -253,6 +255,8 @@ const HomePage = () => {
             </div>
           </AnalyticsCard>
         </div>
+          </>
+        )}
 
         <div className="flex items-center justify-between border-b border-[#252E40] pb-3">
           <div className="flex items-center gap-1 rounded-lg border border-[#242D40] bg-[#141A26] p-1 text-xs font-semibold">

@@ -46,16 +46,16 @@ const Header = ({ onMenuClick }) => {
     ? [
         ...tasks
           .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((t) => ({ ...t, category: 'Task', icon: CheckCircle, link: '/' })),
+          .map((t) => ({ ...t, category: 'Task', icon: CheckCircle, link: `/issues/${t.id}` })),
         ...requirements
           .filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((r) => ({ ...r, category: 'Requirement', icon: FileText, link: '/requirements' })),
+          .map((r) => ({ ...r, category: 'Requirement', icon: FileText, link: `/issues/${r.id}` })),
         ...testCases
           .filter((tc) => tc.title.toLowerCase().includes(searchQuery.toLowerCase()) || tc.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((tc) => ({ ...tc, category: 'Test Case', icon: CheckSquare, link: '/test-cases' })),
+          .map((tc) => ({ ...tc, category: 'Test Case', icon: CheckSquare, link: `/issues/${tc.id}` })),
         ...bugs
           .filter((b) => b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((b) => ({ ...b, category: 'Bug', icon: Bug, link: '/bugs' })),
+          .map((b) => ({ ...b, category: 'Bug', icon: Bug, link: `/issues/${b.id}` })),
       ].slice(0, 6)
     : []
 
@@ -83,19 +83,19 @@ const Header = ({ onMenuClick }) => {
 
           <div className="hidden items-center gap-1 text-sm md:flex">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/projects')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Workspaces
             </button>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/projects')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Projects
             </button>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/backlog')}
               className="rounded px-2.5 py-1 font-medium text-jira-text hover:bg-jira-surface-2 hover:text-white transition"
             >
               Filters

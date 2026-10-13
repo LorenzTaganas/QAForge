@@ -168,6 +168,7 @@ export const QAProvider = ({ children }) => {
         if (snapshot.comments) setComments(snapshot.comments)
         if (snapshot.activity) setActivity(snapshot.activity)
         if (snapshot.testRuns) setTestRuns(snapshot.testRuns)
+        if (snapshot.notifications) setNotifications(snapshot.notifications)
         if (snapshot.watchers) setWatchers(snapshot.watchers)
 
         return Promise.all([
@@ -256,17 +257,17 @@ export const QAProvider = ({ children }) => {
     } catch (error) {
       if (error.response) showToast(error.response.data?.message || 'Could not update notifications')
     }
+  }
 
-    const toggleWatcher = async (issueId) => {
-      const isWatching = watchers.includes(issueId)
-      setWatchers((previous) => isWatching ? previous.filter((id) => id !== issueId) : [...previous, issueId])
-      try {
-        await (isWatching ? api.delete(`/watchers/${issueId}`) : api.post(`/watchers/${issueId}`))
-        showToast(isWatching ? `Stopped watching ${issueId}` : `Watching ${issueId}`)
-      } catch (error) {
-        setWatchers((previous) => isWatching ? [...previous, issueId] : previous.filter((id) => id !== issueId))
-        showToast(error.response?.data?.message || 'Watcher saved locally; server is unavailable')
-      }
+  const toggleWatcher = async (issueId) => {
+    const isWatching = watchers.includes(issueId)
+    setWatchers((previous) => isWatching ? previous.filter((id) => id !== issueId) : [...previous, issueId])
+    try {
+      await (isWatching ? api.delete(`/watchers/${issueId}`) : api.post(`/watchers/${issueId}`))
+      showToast(isWatching ? `Stopped watching ${issueId}` : `Watching ${issueId}`)
+    } catch (error) {
+      setWatchers((previous) => isWatching ? [...previous, issueId] : previous.filter((id) => id !== issueId))
+      showToast(error.response?.data?.message || 'Watcher saved locally; server is unavailable')
     }
   }
   useEffect(() => localStorage.setItem('qaforge-test-runs', JSON.stringify(testRuns)), [testRuns])

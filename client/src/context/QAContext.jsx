@@ -318,6 +318,18 @@ export const QAProvider = ({ children }) => {
     const created = { ...sprint, id: `SPRINT-${Date.now()}`, status: 'Planned' }
     setSprints((previous) => [created, ...previous])
     showToast(`Created sprint ${created.name}`)
+    return created
+  }
+
+  const updateSprint = (sprintId, updates) => {
+    setSprints((previous) =>
+      previous.map((sprint) => {
+        if (sprint.id === sprintId) return { ...sprint, ...updates }
+        if (updates.status === 'Active' && sprint.status === 'Active') return { ...sprint, status: 'Planned' }
+        return sprint
+      }),
+    )
+    showToast('Sprint updated')
   }
 
   return (
@@ -358,6 +370,7 @@ export const QAProvider = ({ children }) => {
         addComment,
         addProject,
         addSprint,
+        updateSprint,
       }}
     >
       {children}

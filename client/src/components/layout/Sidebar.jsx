@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X, FolderKanban, ListTodo, PlayCircle, Network } from 'lucide-react'
+import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X, FolderKanban, ListTodo, PlayCircle, Network, KanbanSquare } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQA } from '../../context/QAContext'
 
@@ -12,6 +12,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { label: 'Overview', path: '/', icon: LayoutGrid, count: tasks.length },
     { label: 'Projects', path: '/projects', icon: FolderKanban, count: projects.length },
     { label: 'Backlog', path: '/backlog', icon: ListTodo },
+    { label: 'Sprints', path: '/sprints', icon: KanbanSquare },
     { label: 'Requirements', path: '/requirements', icon: FileText, count: requirements.length },
     { label: 'Test Cases', path: '/test-cases', icon: CheckSquare, count: testCases.length },
     { label: 'Test Runs', path: '/test-runs', icon: PlayCircle },

@@ -12,6 +12,7 @@ import IssueDetailPage from './pages/IssueDetailPage'
 import BacklogPage from './pages/BacklogPage'
 import TestRunsPage from './pages/TestRunsPage'
 import TraceabilityPage from './pages/TraceabilityPage'
+import SprintsPage from './pages/SprintsPage'
 import { useAuth } from './context/AuthContext'
 import { QAProvider } from './context/QAContext'
 
@@ -110,6 +111,14 @@ function App() {
           element={
             <ProtectedRoute>
               <TraceabilityPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sprints"
+          element={
+            <ProtectedRoute>
+              <SprintsPage />
             </ProtectedRoute>
           }
         />

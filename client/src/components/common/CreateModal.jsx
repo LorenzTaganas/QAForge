@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X, CheckCircle, FileText, CheckSquare, Bug } from 'lucide-react'
 import { useQA } from '../../context/QAContext'
 import { useAuth } from '../../context/AuthContext'
@@ -7,6 +7,9 @@ const CreateModal = ({ isOpen, onClose }) => {
   const { addTask, addRequirement, addTestCase, addBug, projects, selectedProjectKey, sprints, epics } = useQA()
   const { user } = useAuth()
   const [entityType, setEntityType] = useState('Task')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [validationError, setValidationError] = useState('')
+  const titleInputRef = useRef(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -23,6 +26,26 @@ const CreateModal = ({ isOpen, onClose }) => {
     labels: '',
   })
 
+  const projectSprints = sprints.filter((sprint) => !sprint.projectKey || sprint.projectKey === formData.projectKey)
+  const projectEpics = epics.filter((epic) => !epic.projectKey || epic.projectKey === formData.projectKey)
+
+  useEffect(() => {
+    if (!isOpen) return
+    setFormData((previous) => ({ ...previous, projectKey: selectedProjectKey || previous.projectKey }))
+    setValidationError('')
+    const focusTimer = window.setTimeout(() => titleInputRef.current?.focus(), 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [isOpen, selectedProjectKey])
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !isSubmitting) onClose()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isOpen, isSubmitting, onClose])
+
   if (!isOpen) return null
 
   const handleChange = (e) => {
@@ -30,72 +53,53 @@ const CreateModal = ({ isOpen, onClose }) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.title.trim()) return
-
-    if (entityType === 'Task') {
-      addTask({
-        title: formData.title,
-        priority: formData.priority,
-        owner: formData.owner,
-        due: formData.due,
-        status: 'To Do',
-        projectKey: formData.projectKey,
-        sprintId: formData.sprintId || undefined,
-        epicId: formData.epicId || undefined,
-        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
-      })
-    } else if (entityType === 'Requirement') {
-      addRequirement({
-        title: formData.title,
-        description: formData.description,
-        priority: formData.priority,
-        owner: formData.owner,
-        status: 'Draft',
-        projectKey: formData.projectKey,
-        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
-      })
-    } else if (entityType === 'TestCase') {
-      addTestCase({
-        title: formData.title,
-        type: formData.type,
-        priority: formData.priority,
-        owner: formData.owner,
-        projectKey: formData.projectKey,
-        requirementIds: [],
-        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
-      })
-    } else if (entityType === 'Bug') {
-      addBug({
-        title: formData.title,
-        description: formData.description,
-        severity: formData.severity,
-        priority: formData.priority,
-        reporter: formData.owner,
-        assignee: formData.assignee,
-        environment: formData.environment,
-        projectKey: formData.projectKey,
-        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
-      })
+    if (!formData.title.trim()) {
+      setValidationError('Add a summary before creating this issue.')
+      titleInputRef.current?.focus()
+      return
     }
+    if (isSubmitting) return
+    setValidationError('')
+    setIsSubmitting(true)
 
-    setFormData({
-      title: '',
-      description: '',
-      priority: 'High',
-      severity: 'Major',
-      type: 'Functional',
-      owner: user?.name || 'QA Tester',
-      assignee: 'Developer',
-      due: 'Oct 30, 2026',
-      environment: 'Staging',
-      projectKey: selectedProjectKey || 'QAR',
-      sprintId: '',
-      epicId: '',
-      labels: '',
-    })
-    onClose()
+    try {
+      const common = {
+        title: formData.title.trim(),
+        priority: formData.priority,
+        projectKey: formData.projectKey,
+        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
+      }
+      if (entityType === 'Task') {
+        await addTask({ ...common, owner: formData.owner, due: formData.due, status: 'To Do', sprintId: formData.sprintId || undefined, epicId: formData.epicId || undefined })
+      } else if (entityType === 'Requirement') {
+        await addRequirement({ ...common, description: formData.description, owner: formData.owner, status: 'Draft' })
+      } else if (entityType === 'TestCase') {
+        await addTestCase({ ...common, type: formData.type, owner: formData.owner, requirementIds: [] })
+      } else if (entityType === 'Bug') {
+        await addBug({ ...common, description: formData.description, severity: formData.severity, reporter: formData.owner, assignee: formData.assignee, environment: formData.environment })
+      }
+
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'High',
+        severity: 'Major',
+        type: 'Functional',
+        owner: user?.name || 'QA Tester',
+        assignee: 'Developer',
+        due: 'Oct 30, 2026',
+        environment: 'Staging',
+        projectKey: selectedProjectKey || 'QAR',
+        sprintId: '',
+        epicId: '',
+        labels: '',
+      })
+      onClose()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -160,6 +164,7 @@ const CreateModal = ({ isOpen, onClose }) => {
               name="title"
               type="text"
               required
+              ref={titleInputRef}
               value={formData.title}
               onChange={handleChange}
               placeholder={`Enter ${entityType.toLowerCase()} summary...`}
@@ -205,14 +210,14 @@ const CreateModal = ({ isOpen, onClose }) => {
                 <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="sprintId">Sprint</label>
                 <select id="sprintId" name="sprintId" value={formData.sprintId} onChange={handleChange} className="input-field text-xs">
                   <option value="">Backlog / no sprint</option>
-                  {sprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+                  {projectSprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="epicId">Epic</label>
                 <select id="epicId" name="epicId" value={formData.epicId} onChange={handleChange} className="input-field text-xs">
                   <option value="">No epic</option>
-                  {epics.map((epic) => <option key={epic.id} value={epic.id}>{epic.title}</option>)}
+                  {projectEpics.map((epic) => <option key={epic.id} value={epic.id}>{epic.title}</option>)}
                 </select>
               </div>
             </div>
@@ -293,18 +298,21 @@ const CreateModal = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-jira-border">
+            {validationError && <p className="mr-auto text-xs text-red-300">{validationError}</p>}
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="btn-ghost text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               className="btn-primary text-xs"
             >
-              Create {entityType}
+              {isSubmitting ? 'Creating...' : `Create ${entityType}`}
             </button>
           </div>
         </form>

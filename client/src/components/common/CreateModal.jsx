@@ -4,7 +4,7 @@ import { useQA } from '../../context/QAContext'
 import { useAuth } from '../../context/AuthContext'
 
 const CreateModal = ({ isOpen, onClose }) => {
-  const { addTask, addRequirement, addTestCase, addBug } = useQA()
+  const { addTask, addRequirement, addTestCase, addBug, projects, sprints, epics } = useQA()
   const { user } = useAuth()
   const [entityType, setEntityType] = useState('Task')
   const [formData, setFormData] = useState({
@@ -17,6 +17,10 @@ const CreateModal = ({ isOpen, onClose }) => {
     assignee: 'Developer',
     due: 'Oct 30, 2026',
     environment: 'Staging',
+    projectKey: 'QAR',
+    sprintId: '',
+    epicId: '',
+    labels: '',
   })
 
   if (!isOpen) return null
@@ -37,6 +41,10 @@ const CreateModal = ({ isOpen, onClose }) => {
         owner: formData.owner,
         due: formData.due,
         status: 'To Do',
+        projectKey: formData.projectKey,
+        sprintId: formData.sprintId || undefined,
+        epicId: formData.epicId || undefined,
+        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
       })
     } else if (entityType === 'Requirement') {
       addRequirement({
@@ -45,6 +53,8 @@ const CreateModal = ({ isOpen, onClose }) => {
         priority: formData.priority,
         owner: formData.owner,
         status: 'Draft',
+        projectKey: formData.projectKey,
+        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
       })
     } else if (entityType === 'TestCase') {
       addTestCase({
@@ -52,6 +62,9 @@ const CreateModal = ({ isOpen, onClose }) => {
         type: formData.type,
         priority: formData.priority,
         owner: formData.owner,
+        projectKey: formData.projectKey,
+        requirementIds: [],
+        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
       })
     } else if (entityType === 'Bug') {
       addBug({
@@ -62,6 +75,8 @@ const CreateModal = ({ isOpen, onClose }) => {
         reporter: formData.owner,
         assignee: formData.assignee,
         environment: formData.environment,
+        projectKey: formData.projectKey,
+        labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
       })
     }
 
@@ -75,6 +90,10 @@ const CreateModal = ({ isOpen, onClose }) => {
       assignee: 'Developer',
       due: 'Oct 30, 2026',
       environment: 'Staging',
+      projectKey: 'QAR',
+      sprintId: '',
+      epicId: '',
+      labels: '',
     })
     onClose()
   }
@@ -87,7 +106,10 @@ const CreateModal = ({ isOpen, onClose }) => {
             <div className="flex h-7 w-7 items-center justify-center rounded bg-jira-blue/20 text-jira-blue">
               <CheckCircle size={16} />
             </div>
-            <h3 className="text-base font-bold text-white">Create Jira QA Issue</h3>
+            <div>
+              <h3 className="text-base font-bold text-white">Create issue</h3>
+              <p className="mt-0.5 text-[11px] text-jira-muted">Add work to your QA project</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -102,8 +124,13 @@ const CreateModal = ({ isOpen, onClose }) => {
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-jira-muted">
               Issue Type
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {['Task', 'Requirement', 'TestCase', 'Bug'].map((type) => (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                ['Task', 'Work item'],
+                ['Requirement', 'Requirement'],
+                ['TestCase', 'Test case'],
+                ['Bug', 'Bug'],
+              ].map(([type, label]) => (
                 <button
                   key={type}
                   type="button"
@@ -118,7 +145,7 @@ const CreateModal = ({ isOpen, onClose }) => {
                   {type === 'Requirement' && <FileText size={13} className="text-amber-400" />}
                   {type === 'TestCase' && <CheckSquare size={13} className="text-emerald-400" />}
                   {type === 'Bug' && <Bug size={13} className="text-rose-400" />}
-                  <span>{type}</span>
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
@@ -154,6 +181,40 @@ const CreateModal = ({ isOpen, onClose }) => {
                 placeholder="Provide description, acceptance criteria, or steps to reproduce..."
                 className="input-field text-xs resize-none"
               />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="projectKey">Project</label>
+              <select id="projectKey" name="projectKey" value={formData.projectKey} onChange={handleChange} className="input-field text-xs">
+                {projects.map((project) => <option key={project.key} value={project.key}>{project.key} · {project.name}</option>)}
+              </select>
+            </div>
+            {(entityType === 'Task' || entityType === 'Bug') && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="labels">Labels</label>
+                <input id="labels" name="labels" value={formData.labels} onChange={handleChange} placeholder="regression, release" className="input-field text-xs" />
+              </div>
+            )}
+          </div>
+
+          {(entityType === 'Task' || entityType === 'Bug') && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="sprintId">Sprint</label>
+                <select id="sprintId" name="sprintId" value={formData.sprintId} onChange={handleChange} className="input-field text-xs">
+                  <option value="">Backlog / no sprint</option>
+                  {sprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-jira-text" htmlFor="epicId">Epic</label>
+                <select id="epicId" name="epicId" value={formData.epicId} onChange={handleChange} className="input-field text-xs">
+                  <option value="">No epic</option>
+                  {epics.map((epic) => <option key={epic.id} value={epic.id}>{epic.title}</option>)}
+                </select>
+              </div>
             </div>
           )}
 

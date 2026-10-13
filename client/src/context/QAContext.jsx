@@ -515,7 +515,25 @@ export const QAProvider = ({ children }) => {
     }
   }
 
-  const updateIssue = (issueId, updates) => {
+  const updateIssue = async (issueId, updates) => {
+    const collection = tasks.some((item) => item.id === issueId)
+      ? 'tasks'
+      : requirements.some((item) => item.id === issueId)
+        ? 'requirements'
+        : testCases.some((item) => item.id === issueId)
+          ? 'testCases'
+          : bugs.some((item) => item.id === issueId) ? 'bugs' : null
+    const endpoint = {
+      tasks: 'tasks',
+      requirements: 'requirements',
+      testCases: 'test-cases',
+      bugs: 'bugs',
+    }[collection]
+    if (!endpoint) {
+      showToast(`Could not find ${issueId}`)
+      return
+    }
+
     const update = (items) =>
       items.map((item) => (item.id === issueId ? { ...item, ...updates } : item))
 
@@ -534,7 +552,30 @@ export const QAProvider = ({ children }) => {
       },
       ...previous,
     ])
-    showToast(`Updated ${issueId}`)
+    const serverUpdates = { ...updates }
+    if (serverUpdates.assignee !== undefined && collection !== 'bugs') {
+      serverUpdates.owner = serverUpdates.assignee
+      delete serverUpdates.assignee
+    }
+
+    try {
+      const response = await api.patch(`/${endpoint}/${issueId}`, serverUpdates)
+      const persistedItem = response.data?.task
+        || response.data?.requirement
+        || response.data?.testCase
+        || response.data?.bug
+      if (persistedItem) {
+        const replacePersisted = (items) => items.map((item) => item.id === issueId ? { ...item, ...persistedItem } : item)
+        setTasks((previous) => replacePersisted(previous))
+        setRequirements((previous) => replacePersisted(previous))
+        setTestCases((previous) => replacePersisted(previous))
+        setBugs((previous) => replacePersisted(previous))
+      }
+      await api.post('/activity', { issueId, action: `updated ${Object.keys(updates).join(', ')}` })
+      showToast(`Updated ${issueId}`)
+    } catch (error) {
+      showToast(error.response?.data?.message || `${issueId} updated locally; server is unavailable`)
+    }
   }
 
   const addComment = async (issueId, body, author = 'You', attachment = null) => {

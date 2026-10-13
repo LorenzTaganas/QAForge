@@ -5,6 +5,7 @@ const { authMiddleware } = require('../middleware/authMiddleware')
 
 const router = express.Router()
 const storePath = path.join(__dirname, '..', 'data', 'qaStore.json')
+let writeQueue = Promise.resolve()
 
 const readStore = async () => {
   try {
@@ -17,7 +18,33 @@ const readStore = async () => {
 }
 
 const writeStore = async (store) => {
-  await fs.writeFile(storePath, JSON.stringify(store, null, 2), 'utf8')
+  await fs.mkdir(path.dirname(storePath), { recursive: true })
+  const temporaryPath = `${storePath}.tmp`
+  await fs.writeFile(temporaryPath, JSON.stringify(store, null, 2), 'utf8')
+  await fs.rename(temporaryPath, storePath)
+}
+
+const queueWrite = (store) => {
+  writeQueue = writeQueue.then(() => writeStore(store))
+  return writeQueue
+}
+
+const isSnapshot = (snapshot) => (
+  snapshot &&
+  typeof snapshot === 'object' &&
+  !Array.isArray(snapshot) &&
+  ['tasks', 'requirements', 'testCases', 'bugs', 'projects', 'epics', 'sprints', 'comments', 'activity', 'testRuns']
+    .every((key) => snapshot[key] === undefined || Array.isArray(snapshot[key]))
+)
+
+const snapshotFields = ['tasks', 'requirements', 'testCases', 'bugs', 'projectSettings', 'projects', 'epics', 'sprints', 'comments', 'activity', 'testRuns']
+
+const pickSnapshotFields = (snapshot) => {
+  const picked = {}
+  snapshotFields.forEach((field) => {
+    if (snapshot[field] !== undefined) picked[field] = snapshot[field]
+  })
+  return picked
 }
 
 router.get('/snapshot', authMiddleware, async (req, res, next) => {
@@ -34,7 +61,7 @@ router.get('/snapshot', authMiddleware, async (req, res, next) => {
 
 router.put('/snapshot', authMiddleware, async (req, res, next) => {
   try {
-    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    if (!isSnapshot(req.body)) {
       return res.status(400).json({
         success: false,
         message: 'A valid QA snapshot is required.',
@@ -43,10 +70,10 @@ router.put('/snapshot', authMiddleware, async (req, res, next) => {
 
     const store = await readStore()
     store[req.user.id] = {
-      ...req.body,
+      ...pickSnapshotFields(req.body),
       updatedAt: new Date().toISOString(),
     }
-    await writeStore(store)
+    await queueWrite(store)
 
     return res.status(200).json({
       success: true,

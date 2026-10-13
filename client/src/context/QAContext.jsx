@@ -133,7 +133,23 @@ export const QAProvider = ({ children }) => {
     api.get('/qa/snapshot')
       .then((response) => {
         const snapshot = response.data.snapshot
-        if (cancelled || !snapshot) return
+        if (cancelled) return
+
+        if (!snapshot) {
+          return api.put('/qa/snapshot', {
+            tasks,
+            requirements,
+            testCases,
+            bugs,
+            projectSettings,
+            projects,
+            epics,
+            sprints,
+            comments,
+            activity,
+            testRuns,
+          })
+        }
 
         if (snapshot.tasks) setTasks(snapshot.tasks)
         if (snapshot.requirements) setRequirements(snapshot.requirements)

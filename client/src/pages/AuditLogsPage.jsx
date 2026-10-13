@@ -18,7 +18,7 @@ const AuditLogsPage = () => {
     if (!projectIssueIds.has(event.issueId)) return false
     const haystack = `${event.issueId} ${event.action} ${event.actor}`.toLowerCase()
     return (!query || haystack.includes(query.toLowerCase())) && (kind === 'All' || event.kind === kind)
-  }).sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt)), [activity, comments, kind, query])
+  }).sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt)), [activity, comments, kind, query, projectIssueIds])
 
   return <MainLayout><div className="mx-auto flex max-w-[1200px] flex-col gap-6">
     <div className="flex flex-col gap-4 border-b border-[#20283A] pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="section-title">Administration / History</p><h1 className="mt-1 section-heading text-white">Audit log</h1><p className="mt-2 text-sm text-jira-muted">Review issue changes and collaboration events across QAForge.</p></div><span className="flex items-center gap-2 text-xs text-[#78849A]"><Activity size={15} /> {events.length} events</span></div>

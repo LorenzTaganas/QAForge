@@ -171,13 +171,17 @@ export const QAProvider = ({ children }) => {
           api.get('/test-cases'),
           api.get('/bugs'),
           api.get('/test-runs'),
-        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse]) => {
+          api.get('/comments'),
+          api.get('/activity'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse]) => {
           if (cancelled) return
           if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
           if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
           if (testCaseResponse.data?.testCases) setTestCases(testCaseResponse.data.testCases)
           if (bugResponse.data?.bugs) setBugs(bugResponse.data.bugs)
           if (testRunResponse.data?.testRuns) setTestRuns(testRunResponse.data.testRuns)
+          if (commentsResponse.data?.comments) setComments(commentsResponse.data.comments)
+          if (activityResponse.data?.activity) setActivity(activityResponse.data.activity)
         })
       })
       .catch(() => {
@@ -498,17 +502,22 @@ export const QAProvider = ({ children }) => {
     showToast(`Updated ${issueId}`)
   }
 
-  const addComment = (issueId, body, author = 'You') => {
+  const addComment = async (issueId, body, author = 'You') => {
     if (!body.trim()) return
 
-    setComments((previous) => [
-      { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: new Date().toISOString() },
-      ...previous,
-    ])
-    setActivity((previous) => [
-      { id: `activity-${Date.now()}`, issueId, action: 'added a comment', actor: author, createdAt: new Date().toISOString() },
-      ...previous,
-    ])
+    const localComment = { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: new Date().toISOString() }
+    const localActivity = { id: `activity-${Date.now() + 1}`, issueId, action: 'added a comment', actor: author, createdAt: new Date().toISOString() }
+    let commentToAdd = localComment
+    let activityToAdd = localActivity
+    try {
+      const response = await api.post('/comments', { issueId, body: body.trim() })
+      if (response.data?.comment) commentToAdd = response.data.comment
+      if (response.data?.activity) activityToAdd = response.data.activity
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Comment saved locally; server is unavailable')
+    }
+    setComments((previous) => [commentToAdd, ...previous])
+    setActivity((previous) => [activityToAdd, ...previous])
     showToast('Comment added')
   }
 

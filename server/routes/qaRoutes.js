@@ -8,11 +8,11 @@ const isSnapshot = (snapshot) => (
   snapshot &&
   typeof snapshot === 'object' &&
   !Array.isArray(snapshot) &&
-  ['tasks', 'requirements', 'testCases', 'bugs', 'projects', 'epics', 'sprints', 'comments', 'activity', 'testRuns']
+  ['tasks', 'requirements', 'testCases', 'bugs', 'projects', 'epics', 'sprints', 'comments', 'activity', 'testRuns', 'notifications', 'watchers']
     .every((key) => snapshot[key] === undefined || Array.isArray(snapshot[key]))
 )
 
-const snapshotFields = ['tasks', 'requirements', 'testCases', 'bugs', 'projectSettings', 'projects', 'selectedProjectKey', 'epics', 'sprints', 'comments', 'activity', 'testRuns']
+const snapshotFields = ['tasks', 'requirements', 'testCases', 'bugs', 'projectSettings', 'projects', 'selectedProjectKey', 'epics', 'sprints', 'comments', 'activity', 'testRuns', 'notifications', 'watchers']
 
 const pickSnapshotFields = (snapshot) => {
   const picked = {}

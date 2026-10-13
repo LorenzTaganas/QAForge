@@ -14,6 +14,7 @@ const taskRoutes = require('./routes/taskRoutes')
 const sprintRoutes = require('./routes/sprintRoutes')
 const epicRoutes = require('./routes/epicRoutes')
 const notificationRoutes = require('./routes/notificationRoutes')
+const watcherRoutes = require('./routes/watcherRoutes')
 
 dotenv.config()
 
@@ -44,6 +45,7 @@ app.use('/api/tasks', taskRoutes)
 app.use('/api/sprints', sprintRoutes)
 app.use('/api/epics', epicRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/watchers', watcherRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

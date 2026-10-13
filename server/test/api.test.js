@@ -167,3 +167,17 @@ test('isolates persisted QA data per authenticated user', async () => {
   assert.equal(qaBugs.body.bugs.length, 1)
   assert.equal(leadBugs.body.bugs.length, 0)
 })
+
+test('allows a user to watch and unwatch an issue', async () => {
+  const watched = await authenticatedRequest(qaToken, '/api/watchers/BUG-1', { method: 'POST' })
+  assert.equal(watched.response.status, 201)
+  assert.equal(watched.body.watching, true)
+
+  const state = await authenticatedRequest(qaToken, '/api/watchers/BUG-1')
+  assert.equal(state.response.status, 200)
+  assert.equal(state.body.watching, true)
+
+  const unwatched = await authenticatedRequest(qaToken, '/api/watchers/BUG-1', { method: 'DELETE' })
+  assert.equal(unwatched.response.status, 200)
+  assert.equal(unwatched.body.watching, false)
+})

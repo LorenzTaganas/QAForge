@@ -119,6 +119,7 @@ export const QAProvider = ({ children }) => {
   const [activity, setActivity] = useState(() => loadStoredValue('qaforge-activity', initialActivity))
   const [testRuns, setTestRuns] = useState(() => loadStoredValue('qaforge-test-runs', initialTestRuns))
   const [notifications, setNotifications] = useState(() => loadStoredValue('qaforge-notifications', []))
+  const [watchers, setWatchers] = useState(() => loadStoredValue('qaforge-watchers', []))
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -151,6 +152,7 @@ export const QAProvider = ({ children }) => {
             activity,
             testRuns,
             notifications,
+            watchers,
           })
         }
 
@@ -166,6 +168,7 @@ export const QAProvider = ({ children }) => {
         if (snapshot.comments) setComments(snapshot.comments)
         if (snapshot.activity) setActivity(snapshot.activity)
         if (snapshot.testRuns) setTestRuns(snapshot.testRuns)
+        if (snapshot.watchers) setWatchers(snapshot.watchers)
 
         return Promise.all([
           api.get('/projects'),
@@ -233,6 +236,7 @@ export const QAProvider = ({ children }) => {
   useEffect(() => localStorage.setItem('qaforge-comments', JSON.stringify(comments)), [comments])
   useEffect(() => localStorage.setItem('qaforge-activity', JSON.stringify(activity)), [activity])
   useEffect(() => localStorage.setItem('qaforge-notifications', JSON.stringify(notifications)), [notifications])
+  useEffect(() => localStorage.setItem('qaforge-watchers', JSON.stringify(watchers)), [watchers])
 
   const markNotificationRead = async (notificationId) => {
     setNotifications((previous) => previous.map((notification) => (
@@ -251,6 +255,18 @@ export const QAProvider = ({ children }) => {
       await api.patch('/notifications/read-all')
     } catch (error) {
       if (error.response) showToast(error.response.data?.message || 'Could not update notifications')
+    }
+
+    const toggleWatcher = async (issueId) => {
+      const isWatching = watchers.includes(issueId)
+      setWatchers((previous) => isWatching ? previous.filter((id) => id !== issueId) : [...previous, issueId])
+      try {
+        await (isWatching ? api.delete(`/watchers/${issueId}`) : api.post(`/watchers/${issueId}`))
+        showToast(isWatching ? `Stopped watching ${issueId}` : `Watching ${issueId}`)
+      } catch (error) {
+        setWatchers((previous) => isWatching ? [...previous, issueId] : previous.filter((id) => id !== issueId))
+        showToast(error.response?.data?.message || 'Watcher saved locally; server is unavailable')
+      }
     }
   }
   useEffect(() => localStorage.setItem('qaforge-test-runs', JSON.stringify(testRuns)), [testRuns])
@@ -275,6 +291,8 @@ export const QAProvider = ({ children }) => {
         comments,
         activity,
         testRuns,
+        notifications,
+        watchers,
       }).catch(() => {
         // Keep the local cache usable if the server is temporarily unavailable.
       })
@@ -296,6 +314,7 @@ export const QAProvider = ({ children }) => {
     activity,
     testRuns,
     notifications,
+    watchers,
   ])
 
   const showToast = (message) => {
@@ -763,6 +782,8 @@ export const QAProvider = ({ children }) => {
         activity,
         testRuns,
         notifications,
+        watchers,
+        toggleWatcher,
         markNotificationRead,
         markAllNotificationsRead,
         projectSettings,

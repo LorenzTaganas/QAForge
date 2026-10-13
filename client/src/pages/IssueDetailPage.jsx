@@ -10,6 +10,8 @@ import {
   Tag,
   TestTube2,
   UserRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
@@ -39,6 +41,8 @@ const IssueDetailPage = () => {
     updateIssue,
     updateBugStatus,
     addComment,
+    watchers,
+    toggleWatcher,
   } = useQA()
   const [comment, setComment] = useState('')
   const [commentAttachment, setCommentAttachment] = useState(null)
@@ -102,7 +106,13 @@ const IssueDetailPage = () => {
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-xs text-[#8B97A9] hover:text-white">
             <ArrowLeft size={14} /> Back to work
           </button>
-          <span className="text-xs text-[#78849A]">Issue workspace</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#78849A]">Issue workspace</span>
+            <button type="button" onClick={() => toggleWatcher(issue.id)} className="btn-ghost text-xs">
+              {watchers.includes(issue.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+              {watchers.includes(issue.id) ? 'Unwatch' : 'Watch'}
+            </button>
+          </div>
         </div>
 
         <header className="rounded-xl border border-[#242D40] bg-[#171B25] p-5 sm:p-6">

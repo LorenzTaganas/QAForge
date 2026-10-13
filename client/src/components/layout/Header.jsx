@@ -28,10 +28,11 @@ const Header = ({ onMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const recentNotifications = [...notifications]
+  const notificationItems = Array.isArray(notifications) ? notifications : []
+  const recentNotifications = [...notificationItems]
     .sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt))
     .slice(0, 5)
-  const unreadNotificationCount = notifications.filter((notification) => !notification.read).length
+  const unreadNotificationCount = notificationItems.filter((notification) => !notification.read).length
 
   useEffect(() => {
     const handleShortcut = (event) => {

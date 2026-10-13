@@ -150,6 +150,7 @@ export const QAProvider = ({ children }) => {
             comments,
             activity,
             testRuns,
+            notifications,
           })
         }
 
@@ -274,9 +275,6 @@ export const QAProvider = ({ children }) => {
         comments,
         activity,
         testRuns,
-        notifications,
-        markNotificationRead,
-        markAllNotificationsRead,
       }).catch(() => {
         // Keep the local cache usable if the server is temporarily unavailable.
       })
@@ -297,6 +295,7 @@ export const QAProvider = ({ children }) => {
     comments,
     activity,
     testRuns,
+    notifications,
   ])
 
   const showToast = (message) => {
@@ -763,6 +762,9 @@ export const QAProvider = ({ children }) => {
         comments,
         activity,
         testRuns,
+        notifications,
+        markNotificationRead,
+        markAllNotificationsRead,
         projectSettings,
         searchQuery,
         setSearchQuery,

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
+  Copy,
   Clock3,
   FileText,
   MessageSquare,
@@ -43,6 +44,7 @@ const IssueDetailPage = () => {
     addComment,
     watchers,
     toggleWatcher,
+    showToast,
   } = useQA()
   const [comment, setComment] = useState('')
   const [commentAttachment, setCommentAttachment] = useState(null)
@@ -98,6 +100,14 @@ const IssueDetailPage = () => {
     setComment('')
     setCommentAttachment(null)
   }
+  const copyIssueKey = async () => {
+    try {
+      await navigator.clipboard.writeText(issue.id)
+      showToast(`Copied ${issue.id}`)
+    } catch {
+      showToast('Could not copy the issue key')
+    }
+  }
 
   return (
     <MainLayout>
@@ -119,7 +129,16 @@ const IssueDetailPage = () => {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-mono font-semibold text-[#6EA8FF]">{issue.id}</span>
+                <button
+                  type="button"
+                  onClick={copyIssueKey}
+                  title={`Copy ${issue.id}`}
+                  aria-label={`Copy issue key ${issue.id}`}
+                  className="inline-flex items-center gap-1 rounded px-1 font-mono font-semibold text-[#6EA8FF] transition hover:bg-[#1C2638] hover:text-[#B7D5FF]"
+                >
+                  {issue.id}
+                  <Copy size={12} aria-hidden="true" />
+                </button>
                 <span className="text-[#4A566B]">•</span>
                 <span className="rounded border border-[#2B3345] bg-[#141A26] px-2 py-1 text-[#AAB5C7]">{issueType}</span>
                 {issue.priority && <span className={`rounded border px-2 py-1 ${priorityColors[issue.priority] || priorityColors.Medium}`}>{issue.priority}</span>}

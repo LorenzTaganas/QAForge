@@ -307,16 +307,22 @@ export const QAProvider = ({ children }) => {
   }
 
   const updateTaskStatus = async (taskId, newStatus) => {
+    const previousTask = tasks.find((task) => task.id === taskId)
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     )
-    showToast(`Updated ${taskId} to ${newStatus}`)
     setActivity((previous) => [{ id: `activity-${Date.now()}`, issueId: taskId, action: `moved to ${newStatus}`, actor: 'You', createdAt: new Date().toISOString() }, ...previous])
     try {
       await api.patch(`/tasks/${taskId}`, { status: newStatus })
       await api.post('/activity', { issueId: taskId, action: `moved to ${newStatus}` })
+      showToast(`Updated ${taskId} to ${newStatus}`)
     } catch (error) {
-      showToast(error.response?.data?.message || 'Task updated locally; server is unavailable')
+      if (error.response) {
+        if (previousTask) setTasks((prev) => prev.map((task) => task.id === taskId ? previousTask : task))
+        showToast(error.response.data?.message || 'Could not update task')
+      } else {
+        showToast('Task updated locally; server is unavailable')
+      }
     }
   }
 
@@ -359,27 +365,36 @@ export const QAProvider = ({ children }) => {
   }
 
   const deleteRequirement = async (id) => {
-    setRequirements((prev) => prev.filter((r) => r.id !== id))
     try {
       await api.delete(`/requirements/${id}`)
+      setRequirements((prev) => prev.filter((r) => r.id !== id))
+      showToast(`Removed requirement ${id}`)
     } catch (error) {
-      if (error.response) showToast(error.response.data?.message || 'Could not remove requirement')
-      else showToast('Requirement removed locally; server is unavailable')
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not remove requirement')
+      } else {
+        setRequirements((prev) => prev.filter((r) => r.id !== id))
+        showToast('Requirement removed locally; server is unavailable')
+      }
     }
-    showToast(`Removed requirement ${id}`)
   }
 
   const updateRequirementStatus = async (id, newStatus) => {
+    const previousRequirement = requirements.find((requirement) => requirement.id === id)
     setRequirements((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
     )
     try {
       await api.patch(`/requirements/${id}`, { status: newStatus })
+      showToast('Requirement status updated')
     } catch (error) {
-      if (error.response) showToast(error.response.data?.message || 'Could not update requirement')
-      else showToast('Requirement updated locally; server is unavailable')
+      if (error.response) {
+        if (previousRequirement) setRequirements((prev) => prev.map((requirement) => requirement.id === id ? previousRequirement : requirement))
+        showToast(error.response.data?.message || 'Could not update requirement')
+      } else {
+        showToast('Requirement updated locally; server is unavailable')
+      }
     }
-    showToast(`Requirement status updated`)
   }
 
   // Test Case actions
@@ -409,15 +424,21 @@ export const QAProvider = ({ children }) => {
   }
 
   const executeTestCase = async (id, result) => {
+    const previousTestCase = testCases.find((testCase) => testCase.id === id)
     setTestCases((prev) =>
       prev.map((tc) => (tc.id === id ? { ...tc, lastResult: result } : tc))
     )
     try {
       await api.patch(`/test-cases/${id}`, { lastResult: result })
+      showToast(`Test ${id} marked as ${result}`)
     } catch (error) {
-      showToast(error.response?.data?.message || 'Test result updated locally; server is unavailable')
+      if (error.response) {
+        if (previousTestCase) setTestCases((prev) => prev.map((testCase) => testCase.id === id ? previousTestCase : testCase))
+        showToast(error.response.data?.message || 'Could not update test result')
+      } else {
+        showToast('Test result updated locally; server is unavailable')
+      }
     }
-    showToast(`Test ${id} marked as ${result}`)
   }
 
   const createTestRun = async (name = 'Ad hoc regression run', projectKey = selectedProjectKey) => {
@@ -440,7 +461,11 @@ export const QAProvider = ({ children }) => {
       const response = await api.post('/test-runs', run)
       if (response.data?.testRun) persistedRun = response.data.testRun
     } catch (error) {
-      showToast(error.response?.data?.message || 'Test run saved locally; server is unavailable')
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create test run')
+        return null
+      }
+      showToast('Test run saved locally; server is unavailable')
     }
     setTestRuns((previous) => [persistedRun, ...previous])
     showToast(`Created test run ${persistedRun.id}`)
@@ -488,6 +513,7 @@ export const QAProvider = ({ children }) => {
   }
 
   const updateBugStatus = async (id, newStatus) => {
+    const previousBug = bugs.find((bug) => bug.id === id)
     setBugs((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
     )
@@ -503,10 +529,15 @@ export const QAProvider = ({ children }) => {
     ])
     try {
       await api.patch(`/bugs/${id}`, { status: newStatus })
+      showToast(`Bug ${id} updated to ${newStatus}`)
     } catch (error) {
-      showToast(error.response?.data?.message || 'Bug updated locally; server is unavailable')
+      if (error.response) {
+        if (previousBug) setBugs((prev) => prev.map((bug) => bug.id === id ? previousBug : bug))
+        showToast(error.response.data?.message || 'Could not update bug')
+      } else {
+        showToast('Bug updated locally; server is unavailable')
+      }
     }
-    showToast(`Bug ${id} updated to ${newStatus}`)
   }
 
   const deleteBug = async (id) => {
@@ -599,7 +630,11 @@ export const QAProvider = ({ children }) => {
       if (response.data?.comment) commentToAdd = response.data.comment
       if (response.data?.activity) activityToAdd = response.data.activity
     } catch (error) {
-      showToast(error.response?.data?.message || 'Comment saved locally; server is unavailable')
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not add comment')
+        return
+      }
+      showToast('Comment saved locally; server is unavailable')
     }
     setComments((previous) => [commentToAdd, ...previous])
     setActivity((previous) => [activityToAdd, ...previous])

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import Loading from './components/common/Loading'
 import { useAuth } from './context/AuthContext'
 import { QAProvider } from './context/QAContext'
 
@@ -20,26 +21,14 @@ const SprintsPage = lazy(() => import('./pages/SprintsPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 
 const PageLoading = () => (
-  <div className="flex min-h-[40vh] items-center justify-center bg-jira-bg text-jira-text">
-    <div className="flex flex-col items-center gap-3">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-jira-blue border-t-transparent" />
-      <p className="text-sm font-medium">Loading page...</p>
-    </div>
-  </div>
+  <Loading />
 )
 
 function App() {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-jira-bg text-jira-text">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-jira-blue border-t-transparent" />
-          <p className="text-sm font-medium">Loading QAForge...</p>
-        </div>
-      </div>
-    )
+    return <Loading fullScreen />
   }
 
   return (

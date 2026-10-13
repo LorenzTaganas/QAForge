@@ -526,6 +526,121 @@
         "environment": "QA"
       }
     ],
-    "updatedAt": "2026-10-13T07:22:36.084Z"
+    "notifications": [
+      {
+        "id": "activity-notification-activity-1791873260469",
+        "issueId": "QAR-106",
+        "title": "QAR-106",
+        "message": "You updated status",
+        "createdAt": "2026-10-13T06:34:20.469Z",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791873252701",
+        "issueId": "QAR-108",
+        "title": "QAR-108",
+        "message": "You updated status",
+        "createdAt": "2026-10-13T06:34:12.701Z",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791873240644",
+        "issueId": "QAR-109",
+        "title": "QAR-109",
+        "message": "You updated status",
+        "createdAt": "2026-10-13T06:34:00.644Z",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791869394639",
+        "issueId": "QAR-109",
+        "title": "QAR-109",
+        "message": "You moved to In Progress",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791869384003",
+        "issueId": "QAR-101",
+        "title": "QAR-101",
+        "message": "You moved to In Progress",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791869382506",
+        "issueId": "QAR-106",
+        "title": "QAR-106",
+        "message": "You moved to In Progress",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791869380718",
+        "issueId": "QAR-108",
+        "title": "QAR-108",
+        "message": "You moved to In Progress",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791868299971",
+        "issueId": "QAR-104",
+        "title": "QAR-104",
+        "message": "You moved to Done",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791868298787",
+        "issueId": "QAR-104",
+        "title": "QAR-104",
+        "message": "You moved to In Review",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791866840102",
+        "issueId": "QAR-100",
+        "title": "QAR-100",
+        "message": "You moved to Done",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791866839156",
+        "issueId": "QAR-100",
+        "title": "QAR-100",
+        "message": "You moved to In Progress",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1791866838363",
+        "issueId": "QAR-100",
+        "title": "QAR-100",
+        "message": "You moved to Done",
+        "createdAt": "Just now",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-1",
+        "issueId": "QAR-101",
+        "title": "QAR-101",
+        "message": "Maria Santos moved to In Progress",
+        "createdAt": "Today, 9:35 AM",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-2",
+        "issueId": "BUG-301",
+        "title": "BUG-301",
+        "message": "Lorenz Taganas created this issue",
+        "createdAt": "Yesterday, 3:54 PM",
+        "read": true
+      }
+    ],
+    "watchers": [],
+    "updatedAt": "2026-10-13T08:18:13.574Z"
   }
 }

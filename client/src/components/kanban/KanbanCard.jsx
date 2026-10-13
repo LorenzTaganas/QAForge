@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Calendar, Trash2, ArrowRightCircle, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useQA } from '../../context/QAContext'
+import { useAuth } from '../../context/AuthContext'
+import { canDeleteIssue } from '../../utils/permissions'
 
 const priorityColors = {
   Critical: 'text-red-400 bg-red-400/10 border-red-400/20',
@@ -14,6 +16,7 @@ const statusFlow = ['To Do', 'In Progress', 'In Review', 'Done']
 
 const KanbanCard = ({ task }) => {
   const { updateTaskStatus, deleteTask } = useQA()
+  const { user } = useAuth()
   const [showMenu, setShowMenu] = useState(false)
 
   const currentIdx = statusFlow.indexOf(task.status)
@@ -40,13 +43,15 @@ const KanbanCard = ({ task }) => {
             </span>
           </div>
 
-          <button
-            onClick={() => deleteTask(task.id)}
-            title="Delete task"
-            className="text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1"
-          >
-            <Trash2 size={13} />
-          </button>
+          {canDeleteIssue(user?.role) && (
+            <button
+              onClick={() => deleteTask(task.id)}
+              title="Delete task"
+              className="text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
 
         <Link to={`/issues/${task.id}`} className="block text-xs font-medium leading-snug text-jira-text transition group-hover:text-white">

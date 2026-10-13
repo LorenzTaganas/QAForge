@@ -3,6 +3,8 @@ import MainLayout from '../components/layout/MainLayout'
 import { Link } from 'react-router-dom'
 import { Plus, Filter, AlertTriangle, Bug, Check, Trash2, ArrowUpDown } from 'lucide-react'
 import { useQA } from '../context/QAContext'
+import { useAuth } from '../context/AuthContext'
+import { canDeleteIssue } from '../utils/permissions'
 
 const severityStyles = {
   Blocker: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -16,6 +18,8 @@ const statusOptions = ['Open', 'In Progress', 'Resolved', 'Closed']
 
 const BugsPage = () => {
   const { bugs, updateBugStatus, deleteBug, setIsCreateModalOpen, searchQuery } = useQA()
+  const { user } = useAuth()
+  const canDelete = canDeleteIssue(user?.role)
   const [severityFilter, setSeverityFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [activeMenuId, setActiveMenuId] = useState(null)
@@ -214,12 +218,14 @@ const BugsPage = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => deleteBug(bug.id)}
-                        className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => deleteBug(bug.id)}
+                          className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

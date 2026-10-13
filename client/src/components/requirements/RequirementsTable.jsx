@@ -3,11 +3,15 @@ import StatusBadge from './StatusBadge'
 import { MoreHorizontal, FileText, Trash2, ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { useQA } from '../../context/QAContext'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { canDeleteIssue } from '../../utils/permissions'
 
 const statusOptions = ['Draft', 'In Review', 'Approved', 'Implemented', 'Rejected']
 
 const RequirementsTable = ({ requirements }) => {
   const { deleteRequirement, updateRequirementStatus } = useQA()
+  const { user } = useAuth()
+  const canDelete = canDeleteIssue(user?.role)
   const [expandedId, setExpandedId] = useState(null)
   const [activeMenuId, setActiveMenuId] = useState(null)
 
@@ -99,13 +103,15 @@ const RequirementsTable = ({ requirements }) => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => deleteRequirement(req.id)}
-                      title="Delete requirement"
-                      className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => deleteRequirement(req.id)}
+                        title="Delete requirement"
+                        className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
 

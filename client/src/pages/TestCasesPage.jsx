@@ -3,6 +3,8 @@ import MainLayout from '../components/layout/MainLayout'
 import { Link } from 'react-router-dom'
 import { Plus, Filter, Play, CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { useQA } from '../context/QAContext'
+import { useAuth } from '../context/AuthContext'
+import { canDeleteIssue } from '../utils/permissions'
 
 const typeBadgeStyles = {
   Smoke: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -20,6 +22,8 @@ const resultStyles = {
 
 const TestCasesPage = () => {
   const { testCases, executeTestCase, deleteTestCase, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const { user } = useAuth()
+  const canDelete = canDeleteIssue(user?.role)
   const [typeFilter, setTypeFilter] = useState('All')
   const [resultFilter, setResultFilter] = useState('All')
   const [expandedId, setExpandedId] = useState(null)
@@ -219,12 +223,14 @@ const TestCasesPage = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => deleteTestCase(tc.id)}
-                        className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => deleteTestCase(tc.id)}
+                          className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
 

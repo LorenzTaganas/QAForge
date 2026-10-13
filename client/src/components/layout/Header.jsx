@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useQA } from '../../context/QAContext'
 import CreateModal from '../common/CreateModal'
 import { useNavigate } from 'react-router-dom'
+import { canCreateIssue } from '../../utils/permissions'
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
@@ -13,6 +14,7 @@ const Header = ({ onMenuClick }) => {
     requirements,
     testCases,
     bugs,
+    activity,
     searchQuery,
     setSearchQuery,
     isCreateModalOpen,
@@ -22,6 +24,7 @@ const Header = ({ onMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const notifications = activity.slice(0, 4)
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -179,13 +182,15 @@ const Header = ({ onMenuClick }) => {
 
         {/* Right: Actions & User Menu */}
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="btn-primary hidden h-8 px-3 text-xs xl:inline-flex"
-          >
-            <Plus size={14} />
-            Create
-          </button>
+          {canCreateIssue(user?.role) && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="btn-primary hidden h-8 px-3 text-xs xl:inline-flex"
+            >
+              <Plus size={14} />
+              Create
+            </button>
+          )}
 
           <div className="relative flex items-center gap-1">
             <button
@@ -205,18 +210,27 @@ const Header = ({ onMenuClick }) => {
               <div className="absolute right-0 top-10 z-50 w-72 rounded-lg border border-jira-border bg-jira-surface p-3 shadow-lift">
                 <div className="flex items-center justify-between border-b border-jira-border pb-2 mb-2">
                   <span className="text-xs font-bold text-white">Notifications</span>
-                  <span className="text-[10px] text-jira-muted">3 new</span>
+                  <span className="text-[10px] text-jira-muted">{notifications.length} recent</span>
                 </div>
                 <div className="space-y-2 text-xs">
-                  <div className="rounded p-2 bg-jira-surface-2/60">
-                    <p className="font-semibold text-white">Test Run Suite #48 Completed</p>
-                    <p className="text-[11px] text-jira-muted mt-0.5">94% pass rate across 124 tests.</p>
-                  </div>
-                  <div className="rounded p-2 bg-jira-surface-2/60">
-                    <p className="font-semibold text-white">BUG-301 Assigned</p>
-                    <p className="text-[11px] text-jira-muted mt-0.5">Critical defect moved to In Progress.</p>
-                  </div>
+                  {notifications.length ? notifications.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        navigate(`/issues/${item.issueId}`)
+                        setShowNotifications(false)
+                      }}
+                      className="w-full rounded p-2 text-left hover:bg-jira-surface-2/60"
+                    >
+                      <p className="font-semibold text-white">{item.issueId}</p>
+                      <p className="mt-0.5 text-[11px] text-jira-muted">{item.actor} {item.action} · {item.createdAt}</p>
+                    </button>
+                  )) : (
+                    <p className="p-2 text-center text-[11px] text-jira-muted">No recent activity.</p>
+                  )}
                 </div>
+                <button type="button" onClick={() => { navigate('/audit-log'); setShowNotifications(false) }} className="mt-2 w-full border-t border-jira-border pt-2 text-center text-[11px] text-jira-blue hover:underline">View activity log</button>
               </div>
             )}
 
@@ -238,11 +252,12 @@ const Header = ({ onMenuClick }) => {
                   <span className="text-xs font-bold text-white">QAForge Quick Guide</span>
                 </div>
                 <div className="space-y-1.5 text-[11px] text-jira-muted">
-                  <p>• Click <strong className="text-white">+ Create</strong> to add tasks, test cases, or bugs.</p>
-                  <p>• Drag or click card status to advance Kanban columns.</p>
-                  <p>• Run tests live from the Test Cases module.</p>
-                  <p>• Export requirements matrix to CSV instantly.</p>
+                  <p>• Use <strong className="text-white">+ Create</strong> to add work items, requirements, test cases, or bugs.</p>
+                  <p>• Drag cards between board columns to update status.</p>
+                  <p>• Open any issue key to edit details, comments, links, and sprint assignment.</p>
+                  <p>• Press <kbd className="rounded border border-jira-border px-1 text-white">/</kbd> to focus global search.</p>
                 </div>
+                <button type="button" onClick={() => { navigate('/projects'); setShowHelp(false) }} className="mt-3 text-[11px] text-jira-blue hover:underline">Open workspace projects</button>
               </div>
             )}
           </div>

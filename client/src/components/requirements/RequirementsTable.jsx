@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import StatusBadge from './StatusBadge'
 import { MoreHorizontal, FileText, Trash2, ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { useQA } from '../../context/QAContext'
+import { Link } from 'react-router-dom'
 
 const statusOptions = ['Draft', 'In Review', 'Approved', 'Implemented', 'Rejected']
 
@@ -50,11 +51,11 @@ const RequirementsTable = ({ requirements }) => {
                   <td className="px-4 py-3 font-mono font-semibold text-jira-blue">
                     <div className="flex items-center gap-1.5">
                       <FileText size={13} className="text-jira-blue" />
-                      {req.id}
+                      <Link to={`/issues/${req.id}`} className="hover:underline">{req.id}</Link>
                     </div>
                   </td>
                   <td className="px-4 py-3 font-medium text-white max-w-xs truncate">
-                    {req.title}
+                    <Link to={`/issues/${req.id}`} className="hover:text-[#B7D5FF]">{req.title}</Link>
                   </td>
                   <td className="px-4 py-3 text-jira-text">
                     <div className="flex items-center gap-2">

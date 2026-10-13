@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
+import { Link } from 'react-router-dom'
 import { Plus, Filter, Play, CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { useQA } from '../context/QAContext'
 
@@ -181,8 +182,8 @@ const TestCasesPage = () => {
                         {expandedId === tc.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </button>
                     </td>
-                    <td className="px-4 py-3 font-mono font-semibold text-jira-blue">{tc.id}</td>
-                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate">{tc.title}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-jira-blue"><Link to={`/issues/${tc.id}`} className="hover:underline">{tc.id}</Link></td>
+                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate"><Link to={`/issues/${tc.id}`} className="hover:text-[#B7D5FF]">{tc.title}</Link></td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase border ${typeBadgeStyles[tc.type] || typeBadgeStyles.Functional}`}>
                         {tc.type}

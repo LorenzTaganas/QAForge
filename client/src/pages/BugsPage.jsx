@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
+import { Link } from 'react-router-dom'
 import { Plus, Filter, AlertTriangle, Bug, Check, Trash2, ArrowUpDown } from 'lucide-react'
 import { useQA } from '../context/QAContext'
 
@@ -162,10 +163,10 @@ const BugsPage = () => {
                     <td className="px-4 py-3 font-mono font-semibold text-rose-400">
                       <div className="flex items-center gap-1.5">
                         <Bug size={13} className="text-rose-400" />
-                        {bug.id}
+                        <Link to={`/issues/${bug.id}`} className="hover:underline">{bug.id}</Link>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate">{bug.title}</td>
+                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate"><Link to={`/issues/${bug.id}`} className="hover:text-[#B7D5FF]">{bug.title}</Link></td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase border ${severityStyles[bug.severity] || severityStyles.Major}`}>
                         {bug.severity}

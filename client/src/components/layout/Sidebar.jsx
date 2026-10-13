@@ -85,6 +85,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
                     const isActive = location.pathname === item.path
+                      || (item.path !== '/' && location.pathname.startsWith(`${item.path}/`))
                     const Icon = item.icon
 
                     return (

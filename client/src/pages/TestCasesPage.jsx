@@ -161,8 +161,27 @@ const TestCasesPage = () => {
         </div>
 
         {/* Test Cases Table */}
-        <div className="overflow-x-auto rounded-lg border border-jira-border bg-jira-surface/40">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="rounded-lg border border-jira-border bg-jira-surface/40">
+          <div className="divide-y divide-jira-border/60 md:hidden">
+            {filteredTestCases.length === 0 ? (
+              <p className="px-4 py-8 text-center text-xs text-jira-muted">No test cases match current filters.</p>
+            ) : filteredTestCases.map((tc) => (
+              <article key={tc.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Link to={`/issues/${tc.id}`} className="font-mono text-[11px] font-semibold text-jira-blue hover:underline">{tc.id}</Link>
+                  <span className={`rounded border px-2 py-1 text-[10px] font-bold uppercase ${resultStyles[tc.lastResult]}`}>{tc.lastResult}</span>
+                </div>
+                <Link to={`/issues/${tc.id}`} className="mt-2 block text-sm font-medium text-white">{tc.title}</Link>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px]">
+                  <span className={`rounded border px-2 py-1 font-bold uppercase ${typeBadgeStyles[tc.type] || typeBadgeStyles.Functional}`}>{tc.type}</span>
+                  <span className="rounded border border-jira-border px-2 py-1 text-jira-text">{tc.priority}</span>
+                  <button onClick={() => executeTestCase(tc.id, 'Passed')} className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-400">Pass</button>
+                  <button onClick={() => executeTestCase(tc.id, 'Failed')} className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 font-semibold text-red-400">Fail</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <table className="hidden w-full text-left text-xs border-collapse md:table">
             <thead className="border-b border-jira-border bg-jira-surface-2 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
               <tr>
                 <th className="w-8 px-3 py-3"></th>

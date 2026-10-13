@@ -141,8 +141,28 @@ const BugsPage = () => {
         </div>
 
         {/* Defects Table */}
-        <div className="overflow-x-auto rounded-lg border border-jira-border bg-jira-surface/40">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="rounded-lg border border-jira-border bg-jira-surface/40">
+          <div className="divide-y divide-jira-border/60 md:hidden">
+            {filteredBugs.length === 0 ? (
+              <p className="px-4 py-8 text-center text-xs text-jira-muted">No defects found matching current filters.</p>
+            ) : filteredBugs.map((bug) => (
+              <article key={bug.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Link to={`/issues/${bug.id}`} className="font-mono text-[11px] font-semibold text-rose-400 hover:underline">{bug.id}</Link>
+                  <select value={bug.status} onChange={(event) => updateBugStatus(bug.id, event.target.value)} className="max-w-[8rem] rounded border border-jira-border bg-jira-surface-2 px-2 py-1 text-[11px] text-jira-text">
+                    {statusOptions.map((option) => <option key={option}>{option}</option>)}
+                  </select>
+                </div>
+                <Link to={`/issues/${bug.id}`} className="mt-2 block text-sm font-medium text-white">{bug.title}</Link>
+                <div className="mt-3 flex flex-wrap gap-2 text-[10px]">
+                  <span className={`rounded border px-2 py-1 font-bold uppercase ${severityStyles[bug.severity] || severityStyles.Major}`}>{bug.severity}</span>
+                  <span className="rounded border border-jira-border px-2 py-1 text-jira-text">{bug.priority}</span>
+                  <span className="rounded border border-jira-border px-2 py-1 text-jira-muted">{bug.assignee || 'Unassigned'}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <table className="hidden w-full text-left text-xs border-collapse md:table">
             <thead className="border-b border-jira-border bg-jira-surface-2 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
               <tr>
                 <th className="px-4 py-3">Key</th>

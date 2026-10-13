@@ -330,8 +330,22 @@ const AnalyticsCard = ({ title, subtitle, icon: Icon, children }) => (
 )
 
 const TaskList = ({ tasks }) => (
-  <div className="overflow-x-auto rounded-xl border border-[#242D40] bg-[#141A26]">
-    <table className="w-full text-left text-xs">
+  <div className="rounded-xl border border-[#242D40] bg-[#141A26]">
+    <div className="divide-y divide-[#20283A] md:hidden">
+      {tasks.length === 0 ? <p className="px-4 py-8 text-center text-xs text-[#78849A]">No issues match the current filters.</p> : tasks.map((task) => (
+        <Link key={task.id} to={`/issues/${task.id}`} className="block p-4 hover:bg-[#192131]">
+          <div className="flex items-start justify-between gap-3">
+            <span className="font-mono text-[11px] font-semibold text-[#6EA8FF]">{task.id}</span>
+            <span className="shrink-0 text-[11px] text-[#AAB5C7]">{task.status}</span>
+          </div>
+          <p className="mt-2 text-sm font-medium text-[#E6EBF3]">{task.title}</p>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#78849A]">
+            <span>{task.priority} priority</span><span>{task.owner}</span><span>{task.due}</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+    <table className="hidden w-full text-left text-xs md:table">
       <thead className="border-b border-[#242D40] bg-[#171E2B] text-[11px] uppercase tracking-wider text-[#78849A]">
         <tr>{['Key', 'Summary', 'Status', 'Priority', 'Assignee', 'Due date'].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
       </thead>

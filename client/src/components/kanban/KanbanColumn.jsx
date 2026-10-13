@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Plus, MoreHorizontal, X, Check } from 'lucide-react'
 import KanbanCard from './KanbanCard'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 
 const KanbanColumn = ({ column }) => {
   const { addTask, updateTaskStatus } = useQA()

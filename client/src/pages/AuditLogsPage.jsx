@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Activity, Filter, MessageSquare, Pencil, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { formatTimestamp, getTimestamp } from '../utils/time'
 import { belongsToProject } from '../utils/projectScope'
 

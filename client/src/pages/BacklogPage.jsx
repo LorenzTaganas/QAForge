@@ -3,7 +3,7 @@ import { CheckCircle2, Circle, Filter, Layers3, List, Plus, Search } from 'lucid
 import { Link } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
 import KanbanBoard from '../components/kanban/KanbanBoard'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 
 const statuses = ['To Do', 'In Progress', 'In Review', 'Done']
 

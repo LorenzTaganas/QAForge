@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X, FolderKanban, ListTodo, PlayCircle, Network, KanbanSquare, History, ChevronDown, ChevronRight } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()

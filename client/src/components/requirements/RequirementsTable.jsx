@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import StatusBadge from './StatusBadge'
 import { MoreHorizontal, FileText, Trash2, ChevronDown, ChevronRight, Check } from 'lucide-react'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { canDeleteIssue } from '../../utils/permissions'

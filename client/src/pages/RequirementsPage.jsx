@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import RequirementsTable from '../components/requirements/RequirementsTable'
 import { Plus, Filter, Download } from 'lucide-react'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 
 const RequirementsPage = () => {
   const { requirements, selectedProjectKey, setIsCreateModalOpen, showToast, searchQuery } = useQA()

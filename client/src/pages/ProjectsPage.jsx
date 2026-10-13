@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { FolderKanban, Plus, Rocket, Users } from 'lucide-react'
 import MainLayout from '../components/layout/MainLayout'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { useAuth } from '../context/AuthContext'
 import { canManageProjects, canManageSprints } from '../utils/permissions'
 

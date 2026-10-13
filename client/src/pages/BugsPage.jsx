@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import { Link } from 'react-router-dom'
 import { Plus, Filter, AlertTriangle, Bug, Check, Trash2, ArrowUpDown } from 'lucide-react'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { useAuth } from '../context/AuthContext'
 import { canDeleteIssue } from '../utils/permissions'
 

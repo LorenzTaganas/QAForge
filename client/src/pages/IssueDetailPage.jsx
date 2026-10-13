@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { formatTimestamp } from '../utils/time'
 
 const statusOptions = ['To Do', 'In Progress', 'In Review', 'Done', 'Open', 'Resolved', 'Verified', 'Reopened', 'Closed', 'Ready', 'Draft']

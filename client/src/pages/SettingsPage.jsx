@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import { Save, Users, Bell, Shield, Sliders } from 'lucide-react'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 
 const SettingsPage = () => {
   const { projectSettings, updateProjectSettings, showToast } = useQA()

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { CheckCircle2, Play, XCircle } from 'lucide-react'
 import MainLayout from '../components/layout/MainLayout'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { formatTimestamp } from '../utils/time'
 import { belongsToProject } from '../utils/projectScope'
 

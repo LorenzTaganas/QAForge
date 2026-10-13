@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import { Link } from 'react-router-dom'
 import { Plus, Filter, Play, CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { useAuth } from '../context/AuthContext'
 import { canDeleteIssue } from '../utils/permissions'
 

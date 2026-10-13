@@ -1,7 +1,7 @@
 import { CheckCircle2, Circle, Link2, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 
 const TraceabilityPage = () => {
   const { requirements, testCases, bugs, selectedProjectKey } = useQA()

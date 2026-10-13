@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { ShieldCheck, TrendingUp, AlertOctagon, CheckCircle2 } from 'lucide-react'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 import { belongsToProject } from '../utils/projectScope'
 
 const COLORS = ['#10b981', '#ef4444', '#64748b'] // Passed, Failed, Pending

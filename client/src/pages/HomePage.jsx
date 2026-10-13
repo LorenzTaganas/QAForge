@@ -36,7 +36,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useQA } from '../context/QAContext'
+import { useQA } from '../context/useQA'
 
 const columnDefinitions = ['To Do', 'In Progress', 'In Review', 'Done']
 const chartTooltipStyle = {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { X, CheckCircle, FileText, CheckSquare, Bug } from 'lucide-react'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 import { useAuth } from '../../context/AuthContext'
 
 const CreateModal = ({ isOpen, onClose }) => {

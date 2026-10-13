@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Search, Plus, Bell, HelpCircle, LogOut, X, CheckCircle, FileText, Bug, CheckSquare, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 import CreateModal from '../common/CreateModal'
 import { useNavigate } from 'react-router-dom'
 import { canCreateIssue } from '../../utils/permissions'

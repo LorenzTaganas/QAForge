@@ -3,7 +3,7 @@ import Header from './Header'
 import Sidebar from './Sidebar'
 import { ChevronRight, CircleDot, LayoutGrid } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 
 const MainLayout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)

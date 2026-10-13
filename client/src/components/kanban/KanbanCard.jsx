@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Calendar, Trash2, ArrowRightCircle, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useQA } from '../../context/QAContext'
+import { useQA } from '../../context/useQA'
 import { useAuth } from '../../context/AuthContext'
 import { canDeleteIssue } from '../../utils/permissions'
 

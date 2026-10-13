@@ -12,6 +12,7 @@ const testRunRoutes = require('./routes/testRunRoutes')
 const collaborationRoutes = require('./routes/collaborationRoutes')
 const taskRoutes = require('./routes/taskRoutes')
 const sprintRoutes = require('./routes/sprintRoutes')
+const epicRoutes = require('./routes/epicRoutes')
 
 dotenv.config()
 
@@ -40,6 +41,7 @@ app.use('/api/test-runs', testRunRoutes)
 app.use('/api', collaborationRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/sprints', sprintRoutes)
+app.use('/api/epics', epicRoutes)
 
 app.get('/', (req, res) => {
   res.send('QAForge backend is running')

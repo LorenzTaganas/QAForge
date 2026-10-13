@@ -175,7 +175,8 @@ export const QAProvider = ({ children }) => {
           api.get('/activity'),
           api.get('/tasks'),
           api.get('/sprints'),
-        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse, sprintResponse]) => {
+          api.get('/epics'),
+        ]).then(([projectResponse, requirementResponse, testCaseResponse, bugResponse, testRunResponse, commentsResponse, activityResponse, taskResponse, sprintResponse, epicResponse]) => {
           if (cancelled) return
           if (projectResponse.data?.projects) setProjects(projectResponse.data.projects)
           if (requirementResponse.data?.requirements) setRequirements(requirementResponse.data.requirements)
@@ -186,6 +187,7 @@ export const QAProvider = ({ children }) => {
           if (activityResponse.data?.activity) setActivity(activityResponse.data.activity)
           if (taskResponse.data?.tasks) setTasks(taskResponse.data.tasks)
           if (sprintResponse.data?.sprints) setSprints(sprintResponse.data.sprints)
+          if (epicResponse.data?.epics) setEpics(epicResponse.data.epics)
         })
       })
       .catch(() => {
@@ -616,6 +618,34 @@ export const QAProvider = ({ children }) => {
     return created
   }
 
+  const addEpic = async (epic) => {
+    let created = { ...epic, id: `EPIC-${Date.now()}`, status: 'To Do', color: epic.color || '#4B8DFF' }
+    try {
+      const response = await api.post('/epics', epic)
+      if (response.data?.epic) created = response.data.epic
+    } catch (error) {
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create epic')
+        return null
+      }
+      showToast('Epic created locally; server is unavailable')
+    }
+    setEpics((previous) => [created, ...previous])
+    showToast(`Created epic ${created.title}`)
+    return created
+  }
+
+  const updateEpic = async (epicId, updates) => {
+    setEpics((previous) => previous.map((epic) => epic.id === epicId ? { ...epic, ...updates } : epic))
+    try {
+      const response = await api.patch(`/epics/${epicId}`, updates)
+      if (response.data?.epic) setEpics((previous) => previous.map((epic) => epic.id === epicId ? response.data.epic : epic))
+      showToast('Epic updated')
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Epic updated locally; server is unavailable')
+    }
+  }
+
   const addSprint = async (sprint) => {
     let created = { ...sprint, id: `SPRINT-${Date.now()}`, status: 'Planned' }
     try {
@@ -690,6 +720,8 @@ export const QAProvider = ({ children }) => {
         updateIssue,
         addComment,
         addProject,
+        addEpic,
+        updateEpic,
         addSprint,
         updateSprint,
       }}

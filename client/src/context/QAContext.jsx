@@ -370,7 +370,7 @@ export const QAProvider = ({ children }) => {
     showToast(`Test ${id} marked as ${result}`)
   }
 
-  const createTestRun = (name = 'Ad hoc regression run', projectKey = selectedProjectKey) => {
+  const createTestRun = async (name = 'Ad hoc regression run', projectKey = selectedProjectKey) => {
     const scopedTestCases = testCases.filter((test) => !test.projectKey ? projectKey === 'QAR' : test.projectKey === projectKey)
     const passed = scopedTestCases.filter((test) => test.lastResult === 'Passed').length
     const failed = scopedTestCases.filter((test) => test.lastResult === 'Failed').length
@@ -385,9 +385,16 @@ export const QAProvider = ({ children }) => {
       projectKey,
       environment: projectSettings.defaultEnv,
     }
-    setTestRuns((previous) => [run, ...previous])
-    showToast(`Created test run ${run.id}`)
-    return run
+    let persistedRun = run
+    try {
+      const response = await api.post('/test-runs', run)
+      if (response.data?.testRun) persistedRun = response.data.testRun
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Test run saved locally; server is unavailable')
+    }
+    setTestRuns((previous) => [persistedRun, ...previous])
+    showToast(`Created test run ${persistedRun.id}`)
+    return persistedRun
   }
 
   const deleteTestCase = async (id) => {

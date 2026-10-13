@@ -44,6 +44,31 @@ const initialProjectSettings = {
   notifyOnFailure: true,
 }
 
+const initialProjects = [
+  { id: 'proj-pp-001', key: 'QAR', name: 'QAForge Core Platform', lead: 'Maria Santos', category: 'Software', status: 'Active', description: 'Quality engineering workspace for the QAForge product.' },
+  { id: 'proj-mobile-002', key: 'MOB', name: 'Mobile Banking App', lead: 'Lorenz Taganas', category: 'Software', status: 'Active', description: 'Mobile release quality and regression tracking.' },
+]
+
+const initialEpics = [
+  { id: 'EPIC-1', title: 'Authentication hardening', status: 'In Progress', owner: 'Security Lead', projectKey: 'QAR', color: '#7C6CF2' },
+  { id: 'EPIC-2', title: 'Release analytics', status: 'To Do', owner: 'QA Lead', projectKey: 'QAR', color: '#4B8DFF' },
+]
+
+const initialSprints = [
+  { id: 'SPRINT-24-4', name: 'Sprint 24.4', goal: 'Stabilize authentication and payment flows', status: 'Active', start: 'Oct 1, 2026', end: 'Oct 28, 2026', projectKey: 'QAR' },
+  { id: 'SPRINT-24-5', name: 'Sprint 24.5', goal: 'Improve release reporting and traceability', status: 'Planned', start: 'Oct 29, 2026', end: 'Nov 12, 2026', projectKey: 'QAR' },
+]
+
+const initialComments = [
+  { id: 'comment-1', issueId: 'QAR-101', author: 'Maria Santos', body: 'Please include token revocation coverage in the regression run.', createdAt: 'Today, 9:42 AM' },
+  { id: 'comment-2', issueId: 'BUG-301', author: 'John Cruz', body: 'Investigating browser lifecycle behavior and refresh token persistence.', createdAt: 'Yesterday, 4:18 PM' },
+]
+
+const initialActivity = [
+  { id: 'activity-1', issueId: 'QAR-101', action: 'moved to In Progress', actor: 'Maria Santos', createdAt: 'Today, 9:35 AM' },
+  { id: 'activity-2', issueId: 'BUG-301', action: 'created this issue', actor: 'Lorenz Taganas', createdAt: 'Yesterday, 3:54 PM' },
+]
+
 const loadStoredValue = (key, fallback) => {
   try {
     const saved = localStorage.getItem(key)
@@ -76,6 +101,11 @@ export const QAProvider = ({ children }) => {
   const [projectSettings, setProjectSettings] = useState(() =>
     loadStoredValue('qaforge-settings', initialProjectSettings),
   )
+  const [projects, setProjects] = useState(() => loadStoredValue('qaforge-projects', initialProjects))
+  const [epics, setEpics] = useState(() => loadStoredValue('qaforge-epics', initialEpics))
+  const [sprints, setSprints] = useState(() => loadStoredValue('qaforge-sprints', initialSprints))
+  const [comments, setComments] = useState(() => loadStoredValue('qaforge-comments', initialComments))
+  const [activity, setActivity] = useState(() => loadStoredValue('qaforge-activity', initialActivity))
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -102,6 +132,11 @@ export const QAProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('qaforge-settings', JSON.stringify(projectSettings))
   }, [projectSettings])
+  useEffect(() => localStorage.setItem('qaforge-projects', JSON.stringify(projects)), [projects])
+  useEffect(() => localStorage.setItem('qaforge-epics', JSON.stringify(epics)), [epics])
+  useEffect(() => localStorage.setItem('qaforge-sprints', JSON.stringify(sprints)), [sprints])
+  useEffect(() => localStorage.setItem('qaforge-comments', JSON.stringify(comments)), [comments])
+  useEffect(() => localStorage.setItem('qaforge-activity', JSON.stringify(activity)), [activity])
 
   useEffect(() => () => clearTimeout(toastTimer.current), [])
 
@@ -134,6 +169,7 @@ export const QAProvider = ({ children }) => {
       prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     )
     showToast(`Updated ${taskId} to ${newStatus}`)
+    setActivity((previous) => [{ id: `activity-${Date.now()}`, issueId: taskId, action: `moved to ${newStatus}`, actor: 'You', createdAt: 'Just now' }, ...previous])
   }
 
   const deleteTask = (taskId) => {
@@ -203,6 +239,7 @@ export const QAProvider = ({ children }) => {
       severity: bug.severity || 'Major',
       priority: bug.priority || 'High',
     }
+
     setBugs((prev) => [newBug, ...prev])
     showToast(`Logged defect ${newBug.id}`)
     return newBug
@@ -220,6 +257,44 @@ export const QAProvider = ({ children }) => {
     showToast(`Deleted defect ${id}`)
   }
 
+  const updateIssue = (issueId, updates) => {
+    const update = (items) =>
+      items.map((item) => (item.id === issueId ? { ...item, ...updates } : item))
+
+    setTasks((previous) => update(previous))
+    setRequirements((previous) => update(previous))
+    setTestCases((previous) => update(previous))
+    setBugs((previous) => update(previous))
+    showToast(`Updated ${issueId}`)
+  }
+
+  const addComment = (issueId, body, author = 'You') => {
+    if (!body.trim()) return
+
+    setComments((previous) => [
+      { id: `comment-${Date.now()}`, issueId, author, body: body.trim(), createdAt: 'Just now' },
+      ...previous,
+    ])
+    setActivity((previous) => [
+      { id: `activity-${Date.now()}`, issueId, action: 'added a comment', actor: author, createdAt: 'Just now' },
+      ...previous,
+    ])
+    showToast('Comment added')
+  }
+
+  const addProject = (project) => {
+    const created = { ...project, id: `proj-${Date.now()}`, status: 'Active' }
+    setProjects((previous) => [created, ...previous])
+    showToast(`Created project ${created.key}`)
+    return created
+  }
+
+  const addSprint = (sprint) => {
+    const created = { ...sprint, id: `SPRINT-${Date.now()}`, status: 'Planned' }
+    setSprints((previous) => [created, ...previous])
+    showToast(`Created sprint ${created.name}`)
+  }
+
   return (
     <QAContext.Provider
       value={{
@@ -227,6 +302,11 @@ export const QAProvider = ({ children }) => {
         requirements,
         testCases,
         bugs,
+        projects,
+        epics,
+        sprints,
+        comments,
+        activity,
         projectSettings,
         searchQuery,
         setSearchQuery,
@@ -247,6 +327,10 @@ export const QAProvider = ({ children }) => {
         addBug,
         updateBugStatus,
         deleteBug,
+        updateIssue,
+        addComment,
+        addProject,
+        addSprint,
       }}
     >
       {children}

@@ -1,15 +1,17 @@
 import React from 'react'
-import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X } from 'lucide-react'
+import { LayoutGrid, FileText, CheckSquare, Bug, BarChart3, Settings, X, FolderKanban, ListTodo } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQA } from '../../context/QAContext'
 
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { tasks, requirements, testCases, bugs } = useQA()
+  const { tasks, requirements, testCases, bugs, projects } = useQA()
 
   const navItems = [
     { label: 'Overview', path: '/', icon: LayoutGrid, count: tasks.length },
+    { label: 'Projects', path: '/projects', icon: FolderKanban, count: projects.length },
+    { label: 'Backlog', path: '/?view=board', icon: ListTodo },
     { label: 'Requirements', path: '/requirements', icon: FileText, count: requirements.length },
     { label: 'Test Cases', path: '/test-cases', icon: CheckSquare, count: testCases.length },
     { label: 'Bugs', path: '/bugs', icon: Bug, count: bugs.filter((b) => b.status !== 'Closed').length },

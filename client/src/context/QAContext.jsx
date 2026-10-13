@@ -291,16 +291,18 @@ export const QAProvider = ({ children }) => {
       priority: task.priority || 'Medium',
       due: task.due || 'Oct 20, 2026',
     }
-    let serverMessageShown = false
     try {
       const response = await api.post('/tasks', task)
       if (response.data?.task) newTask = response.data.task
     } catch (error) {
-      showToast(error.response?.data?.message || 'Task saved locally; server is unavailable')
-      serverMessageShown = true
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create task')
+        return null
+      }
+      showToast('Task saved locally; server is unavailable')
     }
     setTasks((prev) => [newTask, ...prev])
-    if (!serverMessageShown) showToast(`Created task ${newTask.id}`)
+    showToast(`Created task ${newTask.id}`)
     return newTask
   }
 
@@ -340,20 +342,19 @@ export const QAProvider = ({ children }) => {
       status: req.status || 'Draft',
       priority: req.priority || 'Medium',
     }
-    let mutationMessageShown = false
     try {
       const response = await api.post('/requirements', req)
       if (response.data?.requirement) newReq = response.data.requirement
     } catch (error) {
       if (error.response) {
         showToast(error.response.data?.message || 'Could not save requirement')
+        return null
       } else {
         showToast('Requirement saved locally; server is unavailable')
       }
-      mutationMessageShown = true
     }
     setRequirements((prev) => [newReq, ...prev])
-    if (!mutationMessageShown) showToast(`Added requirement ${newReq.id}`)
+    showToast(`Added requirement ${newReq.id}`)
     return newReq
   }
 
@@ -392,16 +393,18 @@ export const QAProvider = ({ children }) => {
       lastResult: 'Pending',
       steps: tc.steps || ['Verify acceptance criteria', 'Check system behavior'],
     }
-    let mutationMessageShown = false
     try {
       const response = await api.post('/test-cases', tc)
       if (response.data?.testCase) newTc = response.data.testCase
     } catch (error) {
-      showToast(error.response?.data?.message || 'Test case saved locally; server is unavailable')
-      mutationMessageShown = true
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create test case')
+        return null
+      }
+      showToast('Test case saved locally; server is unavailable')
     }
     setTestCases((prev) => [newTc, ...prev])
-    if (!mutationMessageShown) showToast(`Added test case ${newTc.id}`)
+    showToast(`Added test case ${newTc.id}`)
     return newTc
   }
 
@@ -468,17 +471,19 @@ export const QAProvider = ({ children }) => {
       severity: bug.severity || 'Major',
       priority: bug.priority || 'High',
     }
-    let mutationMessageShown = false
     try {
       const response = await api.post('/bugs', bug)
       if (response.data?.bug) newBug = response.data.bug
     } catch (error) {
-      showToast(error.response?.data?.message || 'Bug saved locally; server is unavailable')
-      mutationMessageShown = true
+      if (error.response) {
+        showToast(error.response.data?.message || 'Could not create bug')
+        return null
+      }
+      showToast('Bug saved locally; server is unavailable')
     }
 
     setBugs((prev) => [newBug, ...prev])
-    if (!mutationMessageShown) showToast(`Logged defect ${newBug.id}`)
+    showToast(`Logged defect ${newBug.id}`)
     return newBug
   }
 

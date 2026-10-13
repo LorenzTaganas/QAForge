@@ -71,15 +71,17 @@ const CreateModal = ({ isOpen, onClose }) => {
         projectKey: formData.projectKey,
         labels: formData.labels.split(',').map((label) => label.trim()).filter(Boolean),
       }
+      let created
       if (entityType === 'Task') {
-        await addTask({ ...common, owner: formData.owner, due: formData.due, status: 'To Do', sprintId: formData.sprintId || undefined, epicId: formData.epicId || undefined })
+        created = await addTask({ ...common, owner: formData.owner, due: formData.due, status: 'To Do', sprintId: formData.sprintId || undefined, epicId: formData.epicId || undefined })
       } else if (entityType === 'Requirement') {
-        await addRequirement({ ...common, description: formData.description, owner: formData.owner, status: 'Draft' })
+        created = await addRequirement({ ...common, description: formData.description, owner: formData.owner, status: 'Draft' })
       } else if (entityType === 'TestCase') {
-        await addTestCase({ ...common, type: formData.type, owner: formData.owner, requirementIds: [] })
+        created = await addTestCase({ ...common, type: formData.type, owner: formData.owner, requirementIds: [] })
       } else if (entityType === 'Bug') {
-        await addBug({ ...common, description: formData.description, severity: formData.severity, reporter: formData.owner, assignee: formData.assignee, environment: formData.environment })
+        created = await addBug({ ...common, description: formData.description, severity: formData.severity, reporter: formData.owner, assignee: formData.assignee, environment: formData.environment })
       }
+      if (!created) return
 
       setFormData({
         title: '',

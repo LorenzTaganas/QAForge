@@ -4,27 +4,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Jira-inspired dark palette
-        jira: {
-          bg: '#0B0E12',
-          sidebar: '#0E1116',
-          surface: '#1B1F23',
-          'surface-2': '#22272B',
-          'surface-3': '#2D333B',
-          border: '#2D333B',
+        // Sci-Fi Glassmorphic palette
+        sci: {
+          bg: '#070B14',
+          surface: '#101726',
+          'surface-2': '#172138',
+          'surface-3': '#23324F',
+          border: '#3A5280',
           text: '#D1D6DE',
-          muted: '#8C9097',
-          blue: '#0065FF',
-          'blue-soft': '#0052CC',
-          purple: '#62666C',
+          muted: '#8B97A9',
+          cyan: '#00F0FF',
+          blue: '#3B82F6',
+          glow: 'rgba(0, 240, 255, 0.25)',
         },
       },
       fontFamily: {
         sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        soft: '0 10px 30px rgba(15, 23, 42, 0.18)',
-        glow: '0 0 0 1px rgba(0, 101, 255, 0.25), 0 8px 30px rgba(0, 101, 255, 0.18)',
+        sci: '0 4px 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(0, 240, 255, 0.1)',
+        glow: '0 0 15px rgba(0, 240, 255, 0.2), 0 0 30px rgba(0, 120, 255, 0.1)',
         card: '0 18px 50px -12px rgba(0, 0, 0, 0.7)',
         lift: '0 24px 60px -20px rgba(0, 0, 0, 0.75)',
       },

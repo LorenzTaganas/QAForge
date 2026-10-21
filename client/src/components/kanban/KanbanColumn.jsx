@@ -50,17 +50,17 @@ const KanbanColumn = ({ column }) => {
       }}
       onDragLeave={() => setIsDropTarget(false)}
       onDrop={handleDrop}
-      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2.5 transition ${
-        isDropTarget ? 'border-jira-blue bg-jira-blue/10' : 'border-jira-border/60 bg-jira-surface/30 hover:border-jira-border'
+      className={`flex w-72 shrink-0 flex-col rounded-xl border p-3 transition-all duration-200 ${
+        isDropTarget ? 'border-[#00F0FF] bg-[#00F0FF]/10 shadow-[0_0_20px_rgba(0,240,255,0.25)]' : 'border-[#2B416C] bg-[#101726]/70 backdrop-blur-md hover:border-[#3A5280]'
       }`}
     >
       {/* Column Header */}
-      <div className="mb-2 flex items-center justify-between px-2 py-2">
+      <div className="mb-2 flex items-center justify-between px-2 py-2 border-b border-[#233352]/80">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-jira-muted">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[#00F0FF]">
             {columnName}
           </h3>
-          <span className="rounded-full border border-jira-border bg-jira-surface-3 px-2 py-0.5 text-[10px] font-bold text-jira-text">
+          <span className="rounded-full border border-[#2B416C] bg-[#172138] px-2 py-0.5 text-[10px] font-bold text-[#00F0FF]">
             {tasks.length}
           </span>
         </div>
@@ -69,14 +69,14 @@ const KanbanColumn = ({ column }) => {
             type="button"
             onClick={() => setIsAdding(true)}
             title="Add task to this column"
-            className="rounded p-1 text-jira-muted transition hover:bg-jira-surface-3 hover:text-white"
+            className="rounded p-1 text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF]"
           >
             <Plus size={14} />
           </button>
           <button
             type="button"
             title="More column options"
-            className="rounded p-1 text-jira-muted transition hover:bg-jira-surface-3 hover:text-white"
+            className="rounded p-1 text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF]"
           >
             <MoreHorizontal size={14} />
           </button>
@@ -84,14 +84,14 @@ const KanbanColumn = ({ column }) => {
       </div>
 
       {/* Cards List */}
-      <div className="flex min-h-[160px] flex-1 flex-col gap-2.5 overflow-y-auto custom-scrollbar">
+      <div className="flex min-h-[160px] flex-1 flex-col gap-3 overflow-y-auto custom-scrollbar pt-1">
         {tasks.map((task) => (
           <KanbanCard key={task.id} task={task} />
         ))}
 
         {/* Quick Add Form */}
         {isAdding ? (
-          <form onSubmit={handleQuickAdd} className="rounded-md border border-jira-blue bg-jira-surface p-2 shadow-sm">
+          <form onSubmit={handleQuickAdd} className="rounded-xl border border-[#00F0FF] bg-[#101726] p-2.5 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
             <input
               type="text"
               autoFocus
@@ -103,20 +103,20 @@ const KanbanColumn = ({ column }) => {
                   closeQuickAdd()
                 }
               }}
-              className="w-full bg-transparent text-xs text-white placeholder-jira-muted outline-none"
+              className="w-full bg-transparent text-xs text-white placeholder-[#8B97A9] outline-none"
             />
             <div className="mt-2 flex items-center justify-end gap-1.5">
               <button
                 type="button"
                 onClick={closeQuickAdd}
-                className="rounded p-1 text-jira-muted hover:text-white"
+                className="rounded p-1 text-[#8B97A9] hover:text-white"
               >
                 <X size={14} />
               </button>
               <button
                 type="submit"
                 disabled={!quickTitle.trim()}
-                className="flex items-center gap-1 rounded bg-jira-blue px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-jira-blue-soft disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1 rounded bg-[#00F0FF] px-2.5 py-1 text-[11px] font-bold text-[#070B14] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Check size={12} />
                 <span>Add</span>
@@ -127,7 +127,7 @@ const KanbanColumn = ({ column }) => {
           <button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-jira-muted transition hover:bg-jira-surface-2 hover:text-white"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF] hover:border hover:border-[#00F0FF]/30"
           >
             <Plus size={14} />
             <span>Create issue</span>

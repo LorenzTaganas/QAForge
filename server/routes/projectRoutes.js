@@ -81,4 +81,31 @@ router.patch('/:projectKey', authorizeRoles(...projectManagers), async (req, res
   }
 })
 
+router.delete('/:projectKey', authorizeRoles(...projectManagers), async (req, res, next) => {
+  try {
+    const store = await readQaStore()
+    const snapshot = getUserSnapshot(store, req.user.id)
+    const projects = Array.isArray(snapshot.projects) ? snapshot.projects : []
+    const key = req.params.projectKey.toUpperCase()
+    const project = projects.find((item) => item.key === key)
+    if (!project) return res.status(404).json({ success: false, message: 'Project not found.' })
+    if (projects.length <= 1) return res.status(409).json({ success: false, message: 'At least one project must remain in the workspace.' })
+
+    const collections = ['tasks', 'bugs', 'testCases', 'testRuns', 'requirements', 'epics', 'sprints', 'testSuites']
+    const linked = collections.reduce((total, field) => {
+      const items = Array.isArray(snapshot[field]) ? snapshot[field] : []
+      return total + items.filter((item) => (item.projectKey || 'QAR') === key).length
+    }, 0)
+    if (linked > 0) {
+      return res.status(409).json({ success: false, message: `This project still contains ${linked} work item${linked === 1 ? '' : 's'}. Reassign or delete them before removing the project.` })
+    }
+
+    store[req.user.id] = { ...snapshot, projects: projects.filter((item) => item.key !== key), updatedAt: new Date().toISOString() }
+    await queueQaStoreWrite(store)
+    return res.json({ success: true })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 module.exports = router

@@ -56,6 +56,7 @@ router.post('/', async (req, res, next) => {
       status: body.status || 'Draft',
       projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
       labels: Array.isArray(body.labels) ? body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean) : [],
+      linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
     }
     store[req.user.id] = { ...snapshot, requirements: [requirement, ...requirements], updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)
@@ -80,6 +81,7 @@ router.patch('/:requirementId', async (req, res, next) => {
     if (req.body.status && allowedStatuses.includes(req.body.status)) updates.status = req.body.status
     if (req.body.priority && allowedPriorities.includes(req.body.priority)) updates.priority = req.body.priority
     if (Array.isArray(req.body.labels)) updates.labels = req.body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean)
+    if (Array.isArray(req.body.linkedIssueIds)) updates.linkedIssueIds = req.body.linkedIssueIds.filter((id) => typeof id === 'string')
     requirements[index] = { ...requirements[index], ...updates }
     store[req.user.id] = { ...snapshot, requirements, updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)

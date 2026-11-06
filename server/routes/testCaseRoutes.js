@@ -6,7 +6,7 @@ const router = express.Router()
 const allowedTypes = ['Functional', 'Regression', 'Smoke', 'Security', 'Performance', 'Integration']
 const allowedPriorities = ['Low', 'Medium', 'High', 'Critical']
 const allowedStatuses = ['Draft', 'Ready', 'In Progress', 'Deprecated']
-const allowedResults = ['Passed', 'Failed', 'Pending']
+const allowedResults = ['Passed', 'Failed', 'Blocked', 'Skipped', 'Not Run', 'Pending']
 
 const getSnapshot = (store, userId) => store[userId] || {}
 const normalizeLabels = (labels) => Array.isArray(labels)
@@ -61,7 +61,9 @@ router.post('/', async (req, res, next) => {
       postconditions: typeof body.postconditions === 'string' ? body.postconditions.trim() : '',
       owner: typeof body.owner === 'string' && body.owner.trim() ? body.owner.trim() : req.user.name,
       projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
+      suiteId: typeof body.suiteId === 'string' ? body.suiteId : null,
       requirementIds: Array.isArray(body.requirementIds) ? body.requirementIds.filter((id) => typeof id === 'string') : [],
+      linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
       labels: normalizeLabels(body.labels),
     }
     store[req.user.id] = { ...snapshot, testCases: [testCase, ...testCases], updatedAt: new Date().toISOString() }
@@ -81,7 +83,7 @@ router.patch('/:testCaseId', async (req, res, next) => {
     if (index === -1) return res.status(404).json({ success: false, message: 'Test case not found.' })
 
     const updates = {}
-    for (const field of ['title', 'description', 'owner', 'projectKey', 'preconditions', 'postconditions']) {
+    for (const field of ['title', 'description', 'owner', 'projectKey', 'preconditions', 'postconditions', 'suiteId']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (req.body.type && allowedTypes.includes(req.body.type)) updates.type = req.body.type
@@ -89,6 +91,7 @@ router.patch('/:testCaseId', async (req, res, next) => {
     if (req.body.status && allowedStatuses.includes(req.body.status)) updates.status = req.body.status
     if (req.body.lastResult && allowedResults.includes(req.body.lastResult)) updates.lastResult = req.body.lastResult
     if (Array.isArray(req.body.requirementIds)) updates.requirementIds = req.body.requirementIds.filter((id) => typeof id === 'string')
+    if (Array.isArray(req.body.linkedIssueIds)) updates.linkedIssueIds = req.body.linkedIssueIds.filter((id) => typeof id === 'string')
     if (Array.isArray(req.body.steps)) updates.steps = req.body.steps
     if (Array.isArray(req.body.labels)) updates.labels = normalizeLabels(req.body.labels)
     testCases[index] = { ...testCases[index], ...updates }

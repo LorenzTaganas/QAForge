@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
-import { Plus, MoreHorizontal, X, Check } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Plus, X } from 'lucide-react'
 import KanbanCard from './KanbanCard'
 import { useQA } from '../../context/useQA'
+import { useAuth } from '../../context/AuthContext'
 
 const KanbanColumn = ({ column }) => {
-  const { addTask, updateTaskStatus } = useQA()
+  const { addTask, updateTaskStatus, selectedProjectKey } = useQA()
+  const { user } = useAuth()
   const [isAdding, setIsAdding] = useState(false)
   const [quickTitle, setQuickTitle] = useState('')
   const [isDropTarget, setIsDropTarget] = useState(false)
@@ -17,21 +19,18 @@ const KanbanColumn = ({ column }) => {
     setQuickTitle('')
   }
 
-  const handleQuickAdd = (e) => {
-    e.preventDefault()
-
+  const handleQuickAdd = (event) => {
+    event.preventDefault()
     const trimmedTitle = quickTitle.trim()
     if (!trimmedTitle) return
-
     addTask({
       title: trimmedTitle,
       status: columnName,
       priority: 'Medium',
-      owner: 'QA Tester',
+      owner: user?.name || 'Unassigned',
       type: 'Task',
-      due: 'Oct 20, 2026',
+      projectKey: selectedProjectKey,
     })
-
     closeQuickAdd()
   }
 
@@ -50,76 +49,45 @@ const KanbanColumn = ({ column }) => {
       }}
       onDragLeave={() => setIsDropTarget(false)}
       onDrop={handleDrop}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border p-3 transition-all duration-200 ${
-        isDropTarget ? 'border-[#00F0FF] bg-[#00F0FF]/10 shadow-[0_0_20px_rgba(0,240,255,0.25)]' : 'border-[#2B416C] bg-[#101726]/70 backdrop-blur-md hover:border-[#3A5280]'
-      }`}
+      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2.5 transition ${isDropTarget ? 'border-qf-primary bg-qf-primary/5' : 'border-qf-border bg-qf-surface'}`}
     >
-      {/* Column Header */}
-      <div className="mb-2 flex items-center justify-between px-2 py-2 border-b border-[#233352]/80">
+      <div className="mb-2 flex items-center justify-between border-b border-qf-border px-1.5 pb-2 pt-1">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[#00F0FF]">
-            {columnName}
-          </h3>
-          <span className="rounded-full border border-[#2B416C] bg-[#172138] px-2 py-0.5 text-[10px] font-bold text-[#00F0FF]">
-            {tasks.length}
-          </span>
+          <h3 className="text-xs font-semibold text-qf-secondary">{columnName}</h3>
+          <span className="rounded bg-qf-card px-1.5 py-0.5 text-[10px] font-medium text-qf-muted">{tasks.length}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setIsAdding(true)}
-            title="Add task to this column"
-            className="rounded p-1 text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF]"
-          >
-            <Plus size={14} />
-          </button>
-          <button
-            type="button"
-            title="More column options"
-            className="rounded p-1 text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF]"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          title={`Add issue to ${columnName}`}
+          aria-label={`Add issue to ${columnName}`}
+          className="rounded p-1 text-qf-muted transition hover:bg-qf-card hover:text-qf-primary"
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
-      {/* Cards List */}
-      <div className="flex min-h-[160px] flex-1 flex-col gap-3 overflow-y-auto custom-scrollbar pt-1">
-        {tasks.map((task) => (
-          <KanbanCard key={task.id} task={task} />
-        ))}
+      <div className="flex min-h-[140px] flex-1 flex-col gap-2 overflow-y-auto pt-1 custom-scrollbar">
+        {tasks.map((task) => <KanbanCard key={task.id} task={task} />)}
 
-        {/* Quick Add Form */}
         {isAdding ? (
-          <form onSubmit={handleQuickAdd} className="rounded-xl border border-[#00F0FF] bg-[#101726] p-2.5 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+          <form onSubmit={handleQuickAdd} className="rounded-lg border border-qf-primary bg-qf-card p-2.5">
             <input
               type="text"
               autoFocus
-              placeholder="What needs to be done?"
+              maxLength={140}
+              placeholder="Issue title"
               value={quickTitle}
-              onChange={(e) => setQuickTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  closeQuickAdd()
-                }
-              }}
-              className="w-full bg-transparent text-xs text-white placeholder-[#8B97A9] outline-none"
+              onChange={(event) => setQuickTitle(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Escape') closeQuickAdd() }}
+              className="w-full bg-transparent text-xs text-qf-text placeholder-qf-muted outline-none"
             />
             <div className="mt-2 flex items-center justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={closeQuickAdd}
-                className="rounded p-1 text-[#8B97A9] hover:text-white"
-              >
+              <button type="button" onClick={closeQuickAdd} className="rounded p-1 text-qf-muted hover:text-qf-text" aria-label="Cancel">
                 <X size={14} />
               </button>
-              <button
-                type="submit"
-                disabled={!quickTitle.trim()}
-                className="flex items-center gap-1 rounded bg-[#00F0FF] px-2.5 py-1 text-[11px] font-bold text-[#070B14] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Check size={12} />
-                <span>Add</span>
+              <button type="submit" disabled={!quickTitle.trim()} className="btn-primary px-2 py-1 text-[11px]">
+                <Check size={12} /> Add
               </button>
             </div>
           </form>
@@ -127,7 +95,7 @@ const KanbanColumn = ({ column }) => {
           <button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#8B97A9] transition hover:bg-[#172138] hover:text-[#00F0FF] hover:border hover:border-[#00F0FF]/30"
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-qf-muted transition hover:bg-qf-card hover:text-qf-primary"
           >
             <Plus size={14} />
             <span>Create issue</span>

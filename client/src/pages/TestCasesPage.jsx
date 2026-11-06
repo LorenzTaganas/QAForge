@@ -1,279 +1,299 @@
-import React, { useState, useMemo } from 'react'
-import MainLayout from '../components/layout/MainLayout'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Filter, Play, CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { CheckCircle2, CheckSquare, ChevronDown, ChevronRight, PlayCircle, Plus, Search, Trash2, XCircle } from 'lucide-react'
+import MainLayout from '../components/layout/MainLayout'
+import PageHeader from '../components/ui/PageHeader'
+import MetricCard from '../components/ui/MetricCard'
+import EmptyState, { LoadingState } from '../components/ui/EmptyState'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { Badge, PriorityBadge, ResultBadge } from '../components/ui/Badges'
 import { useQA } from '../context/useQA'
 import { useAuth } from '../context/AuthContext'
 import { canDeleteIssue } from '../utils/permissions'
+import { belongsToProject } from '../utils/projectScope'
 
-const typeBadgeStyles = {
-  Smoke: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  Security: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  Functional: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  Performance: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  Regression: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-}
+const types = ['Functional', 'Regression', 'Smoke', 'Security', 'Performance', 'Integration']
+const results = ['Passed', 'Failed', 'Blocked', 'Skipped', 'Not Run', 'Pending']
 
-const resultStyles = {
-  Passed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  Failed: 'bg-red-500/10 text-red-400 border-red-500/20',
-  Pending: 'bg-jira-surface-2 text-jira-muted border-jira-border',
-}
+const normalizeSteps = (steps) => (Array.isArray(steps) ? steps : [])
+  .map((step) => (typeof step === 'string' ? { action: step, expected: '' } : { action: step.action || '', expected: step.expected || '' }))
 
 const TestCasesPage = () => {
-  const { testCases, selectedProjectKey, executeTestCase, deleteTestCase, setIsCreateModalOpen, showToast, searchQuery } = useQA()
+  const {
+    testCases, testSuites, selectedProjectKey, hydrating, searchQuery,
+    openCreateModal, deleteTestCase,
+  } = useQA()
   const { user } = useAuth()
   const canDelete = canDeleteIssue(user?.role)
+  const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [resultFilter, setResultFilter] = useState('All')
+  const [suiteFilter, setSuiteFilter] = useState('All')
   const [expandedId, setExpandedId] = useState(null)
-  const [showFilterBar, setShowFilterBar] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const filteredTestCases = useMemo(() => {
-    return testCases.filter((tc) => {
-      const belongsToProject = tc.projectKey ? tc.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
-      const matchSearch = searchQuery
-        ? tc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tc.id.toLowerCase().includes(searchQuery.toLowerCase())
-        : true
-      const matchType = typeFilter === 'All' ? true : tc.type === typeFilter
-      const matchResult = resultFilter === 'All' ? true : tc.lastResult === resultFilter
-      return belongsToProject && matchSearch && matchType && matchResult
+  const projectCases = useMemo(
+    () => testCases.filter((testCase) => belongsToProject(testCase, selectedProjectKey)),
+    [selectedProjectKey, testCases],
+  )
+  const projectSuites = useMemo(
+    () => testSuites.filter((suite) => (suite.projectKey || 'QAR') === selectedProjectKey),
+    [selectedProjectKey, testSuites],
+  )
+
+  const filtered = useMemo(() => {
+    const term = (query || searchQuery).trim().toLowerCase()
+    return projectCases.filter((testCase) => {
+      const suiteId = testCase.suiteId || projectSuites.find((suite) => (suite.testCaseIds || []).includes(testCase.id))?.id || ''
+      const matchesSuite = suiteFilter === 'All'
+        || (suiteFilter === 'None' ? !suiteId : suiteId === suiteFilter)
+      const matchesSearch = !term || `${testCase.id} ${testCase.title} ${testCase.owner || ''}`.toLowerCase().includes(term)
+      return matchesSearch
+        && (typeFilter === 'All' || testCase.type === typeFilter)
+        && (resultFilter === 'All' || testCase.lastResult === resultFilter)
+        && matchesSuite
     })
-  }, [testCases, selectedProjectKey, searchQuery, typeFilter, resultFilter])
+  }, [projectCases, projectSuites, query, searchQuery, typeFilter, resultFilter, suiteFilter])
 
-  const stats = useMemo(() => {
-    return {
-      total: testCases.length,
-      passed: testCases.filter((t) => t.lastResult === 'Passed').length,
-      failed: testCases.filter((t) => t.lastResult === 'Failed').length,
-      pending: testCases.filter((t) => t.lastResult === 'Pending').length,
-    }
-  }, [testCases])
+  useEffect(() => {
+    setSelectedIds((previous) => previous.filter((id) => filtered.some((testCase) => testCase.id === id)))
+  }, [filtered])
 
-  const handleRunAll = () => {
-    testCases.forEach((tc) => {
-      // Simulate run
-      const outcome = Math.random() > 0.15 ? 'Passed' : 'Failed'
-      executeTestCase(tc.id, outcome)
-    })
-    showToast('Executed test suite batch run')
+  const stats = useMemo(() => ({
+    total: projectCases.length,
+    passed: projectCases.filter((testCase) => testCase.lastResult === 'Passed').length,
+    failed: projectCases.filter((testCase) => testCase.lastResult === 'Failed').length,
+    notRun: projectCases.filter((testCase) => !['Passed', 'Failed'].includes(testCase.lastResult)).length,
+  }), [projectCases])
+
+  const allSelected = filtered.length > 0 && filtered.every((testCase) => selectedIds.includes(testCase.id))
+  const toggleAll = () => setSelectedIds(allSelected ? [] : filtered.map((testCase) => testCase.id))
+  const toggleOne = (id) => setSelectedIds((previous) => (previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]))
+  const suiteName = (testCase) => testCase.suiteId
+    ? projectSuites.find((suite) => suite.id === testCase.suiteId)?.name
+    : projectSuites.find((suite) => (suite.testCaseIds || []).includes(testCase.id))?.name
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
+    await deleteTestCase(pendingDelete.id)
+    setDeleting(false)
+    setPendingDelete(null)
+  }
+
+  const filtersActive = query || typeFilter !== 'All' || resultFilter !== 'All' || suiteFilter !== 'All'
+  const clearFilters = () => {
+    setQuery('')
+    setTypeFilter('All')
+    setResultFilter('All')
+    setSuiteFilter('All')
   }
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-4 border-b border-jira-border pb-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">
-              Quality Assurance / Test Repository
-            </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
-              Test Cases & Execution
-            </h1>
-          </div>
+      <div className="flex flex-col gap-5">
+        <PageHeader
+          eyebrow="Test repository"
+          title="Test cases"
+          description="Author reusable test cases, organize them into suites, and send them into a test run."
+          actions={(
+            <>
+              <Link to="/test-runs" className="btn-ghost text-xs"><PlayCircle size={14} /> Test runs</Link>
+              <button type="button" onClick={() => openCreateModal('TestCase')} className="btn-primary text-xs"><Plus size={14} /> New test case</button>
+            </>
+          )}
+        />
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilterBar(!showFilterBar)}
-              className={`btn-ghost text-xs ${showFilterBar ? 'border-jira-blue text-white' : ''}`}
-            >
-              <Filter size={14} />
-              Filter
-            </button>
-            <button
-              onClick={handleRunAll}
-              className="btn-ghost text-xs text-blue-400 hover:text-white"
-            >
-              <Play size={14} />
-              Run All Tests
-            </button>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="btn-primary text-xs"
-            >
-              <Plus size={14} />
-              New Test Case
-            </button>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Test cases" value={stats.total} icon={CheckSquare} />
+          <MetricCard label="Passing" value={stats.passed} icon={CheckCircle2} tone="success" />
+          <MetricCard label="Failing" value={stats.failed} icon={XCircle} tone="danger" />
+          <MetricCard label="Not run" value={stats.notRun} icon={PlayCircle} tone="warning" />
         </div>
 
-        {/* Filter Bar */}
-        {showFilterBar && (
-          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-jira-border bg-jira-surface/80 p-3 text-xs animate-fade-in">
-            <div className="flex items-center gap-2">
-              <span className="text-jira-muted font-medium">Type:</span>
-              {['All', 'Smoke', 'Security', 'Functional', 'Performance', 'Regression'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
-                  className={`rounded px-2 py-1 transition ${
-                    typeFilter === t
-                      ? 'bg-jira-blue text-white font-semibold'
-                      : 'bg-jira-surface-2 text-jira-muted hover:text-white'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+        <div className="rounded-lg border border-qf-border bg-qf-surface">
+          <div className="flex flex-col gap-3 border-b border-qf-border p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-2.5 text-qf-muted" />
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search test cases" className="input-field pl-9 text-xs" aria-label="Search test cases" />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="input-field w-auto py-2 text-xs" aria-label="Filter by type">
+                  <option value="All">All types</option>
+                  {types.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={resultFilter} onChange={(event) => setResultFilter(event.target.value)} className="input-field w-auto py-2 text-xs" aria-label="Filter by result">
+                  <option value="All">All results</option>
+                  {results.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <select value={suiteFilter} onChange={(event) => setSuiteFilter(event.target.value)} className="input-field w-auto py-2 text-xs" aria-label="Filter by suite">
+                  <option value="All">All suites</option>
+                  <option value="None">Not in a suite</option>
+                  {projectSuites.map((suite) => <option key={suite.id} value={suite.id}>{suite.name}</option>)}
+                </select>
+                {filtersActive && <button type="button" onClick={clearFilters} className="btn-subtle text-xs">Clear</button>}
+              </div>
             </div>
 
-            <div className="h-4 w-px bg-jira-border" />
-
-            <div className="flex items-center gap-2">
-              <span className="text-jira-muted font-medium">Outcome:</span>
-              {['All', 'Passed', 'Failed', 'Pending'].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setResultFilter(r)}
-                  className={`rounded px-2 py-1 transition ${
-                    resultFilter === r
-                      ? 'bg-jira-blue text-white font-semibold'
-                      : 'bg-jira-surface-2 text-jira-muted hover:text-white'
-                  }`}
+            {selectedIds.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 rounded border border-qf-primary/30 bg-qf-primary/10 px-3 py-2 text-xs animate-fade-in">
+                <span className="text-qf-secondary">{selectedIds.length} selected</span>
+                <Link
+                  to={`/test-runs?create=1&caseIds=${encodeURIComponent(selectedIds.join(','))}`}
+                  className="btn-primary px-2.5 py-1 text-[11px]"
                 >
-                  {r}
-                </button>
-              ))}
+                  <PlayCircle size={12} /> Run selected
+                </Link>
+                <button type="button" onClick={() => setSelectedIds([])} className="ml-auto text-qf-muted hover:text-qf-text">Clear selection</button>
+              </div>
+            )}
+          </div>
+
+          {hydrating ? (
+            <div className="p-4"><LoadingState label="Loading test cases" rows={6} /></div>
+          ) : filtered.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={CheckSquare}
+                title={projectCases.length ? 'No test cases match these filters' : 'No test cases yet'}
+                description={projectCases.length
+                  ? 'Adjust the filters or search for a different test case.'
+                  : 'Create your first test case to start building reusable coverage.'}
+                action={projectCases.length
+                  ? <button type="button" onClick={clearFilters} className="btn-ghost text-xs">Clear filters</button>
+                  : <button type="button" onClick={() => openCreateModal('TestCase')} className="btn-primary text-xs"><Plus size={14} /> New test case</button>}
+              />
             </div>
-          </div>
-        )}
-
-        {/* Stats Row */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Total Test Cases</div>
-            <div className="mt-2 text-2xl font-bold text-white">{stats.total}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Passed</div>
-            <div className="mt-2 text-2xl font-bold text-emerald-400">{stats.passed}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Failed</div>
-            <div className="mt-2 text-2xl font-bold text-red-400">{stats.failed}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Pending Run</div>
-            <div className="mt-2 text-2xl font-bold text-jira-muted">{stats.pending}</div>
-          </div>
-        </div>
-
-        {/* Test Cases Table */}
-        <div className="rounded-lg border border-jira-border bg-jira-surface/40">
-          <div className="divide-y divide-jira-border/60 md:hidden">
-            {filteredTestCases.length === 0 ? (
-              <p className="px-4 py-8 text-center text-xs text-jira-muted">No test cases match current filters.</p>
-            ) : filteredTestCases.map((tc) => (
-              <article key={tc.id} className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <Link to={`/issues/${tc.id}`} className="font-mono text-[11px] font-semibold text-jira-blue hover:underline">{tc.id}</Link>
-                  <span className={`rounded border px-2 py-1 text-[10px] font-bold uppercase ${resultStyles[tc.lastResult]}`}>{tc.lastResult}</span>
-                </div>
-                <Link to={`/issues/${tc.id}`} className="mt-2 block text-sm font-medium text-white">{tc.title}</Link>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px]">
-                  <span className={`rounded border px-2 py-1 font-bold uppercase ${typeBadgeStyles[tc.type] || typeBadgeStyles.Functional}`}>{tc.type}</span>
-                  <span className="rounded border border-jira-border px-2 py-1 text-jira-text">{tc.priority}</span>
-                  <button onClick={() => executeTestCase(tc.id, 'Passed')} className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-400">Pass</button>
-                  <button onClick={() => executeTestCase(tc.id, 'Failed')} className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 font-semibold text-red-400">Fail</button>
-                </div>
-              </article>
-            ))}
-          </div>
-          <table className="hidden w-full text-left text-xs border-collapse md:table">
-            <thead className="border-b border-jira-border bg-jira-surface-2 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
-              <tr>
-                <th className="w-8 px-3 py-3"></th>
-                <th className="px-4 py-3">Key</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Last Result</th>
-                <th className="px-4 py-3">Execute Live</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-jira-border/60">
-              {filteredTestCases.map((tc) => (
-                <React.Fragment key={tc.id}>
-                  <tr className="table-row group">
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => setExpandedId(expandedId === tc.id ? null : tc.id)}
-                        className="text-jira-muted hover:text-white"
-                      >
-                        {expandedId === tc.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 font-mono font-semibold text-jira-blue"><Link to={`/issues/${tc.id}`} className="hover:underline">{tc.id}</Link></td>
-                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate"><Link to={`/issues/${tc.id}`} className="hover:text-[#B7D5FF]">{tc.title}</Link></td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase border ${typeBadgeStyles[tc.type] || typeBadgeStyles.Functional}`}>
-                        {tc.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-jira-text">{tc.priority}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase border ${resultStyles[tc.lastResult]}`}>
-                        {tc.lastResult === 'Passed' && <CheckCircle2 size={11} />}
-                        {tc.lastResult === 'Failed' && <XCircle size={11} />}
-                        {tc.lastResult === 'Pending' && <Clock size={11} />}
-                        <span>{tc.lastResult}</span>
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => executeTestCase(tc.id, 'Passed')}
-                          title="Mark Passed"
-                          className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
-                        >
-                          <CheckCircle2 size={11} />
-                          Pass
-                        </button>
-                        <button
-                          onClick={() => executeTestCase(tc.id, 'Failed')}
-                          title="Mark Failed"
-                          className="flex items-center gap-1 rounded bg-red-500/10 px-2 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20 hover:bg-red-500/20 transition"
-                        >
-                          <XCircle size={11} />
-                          Fail
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {canDelete && (
-                        <button
-                          onClick={() => deleteTestCase(tc.id)}
-                          className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-
-                  {expandedId === tc.id && (
-                    <tr className="bg-jira-surface-2/40 border-b border-jira-border">
-                      <td colSpan={8} className="px-10 py-3 text-xs">
-                        <div className="space-y-2">
-                          <span className="font-semibold text-white">Execution Steps & Verification:</span>
-                          <ol className="list-decimal list-inside space-y-1 text-jira-muted">
-                            {tc.steps?.map((step, idx) => (
-                              <li key={idx} className="text-jira-text">{step}</li>
-                            ))}
-                          </ol>
-                        </div>
-                      </td>
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[940px] text-left text-xs">
+                  <thead className="bg-qf-card/50 text-[11px] uppercase tracking-wider text-qf-muted">
+                    <tr>
+                      <th className="w-8 px-3 py-3">
+                        <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-3.5 w-3.5 accent-[#7C6CF2]" aria-label="Select all test cases" />
+                      </th>
+                      <th className="w-8 px-1 py-3" />
+                      <th className="px-3 py-3 font-medium">Key</th>
+                      <th className="px-3 py-3 font-medium">Title</th>
+                      <th className="px-3 py-3 font-medium">Type</th>
+                      <th className="px-3 py-3 font-medium">Suite</th>
+                      <th className="px-3 py-3 font-medium">Priority</th>
+                      <th className="px-3 py-3 font-medium">Last result</th>
+                      <th className="px-3 py-3" />
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+                  </thead>
+                  <tbody className="divide-y divide-qf-border">
+                    {filtered.map((testCase) => (
+                      <React.Fragment key={testCase.id}>
+                        <tr className="group transition hover:bg-qf-card/50">
+                          <td className="px-3 py-3">
+                            <input type="checkbox" checked={selectedIds.includes(testCase.id)} onChange={() => toggleOne(testCase.id)} className="h-3.5 w-3.5 accent-[#7C6CF2]" aria-label={`Select ${testCase.id}`} />
+                          </td>
+                          <td className="px-1 py-3">
+                            <button type="button" onClick={() => setExpandedId(expandedId === testCase.id ? null : testCase.id)} className="rounded p-0.5 text-qf-muted hover:text-qf-text" aria-label={`Toggle steps for ${testCase.id}`}>
+                              {expandedId === testCase.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          </td>
+                          <td className="px-3 py-3"><Link to={`/issues/${testCase.id}`} className="font-mono font-semibold text-qf-info hover:underline">{testCase.id}</Link></td>
+                          <td className="max-w-[22rem] px-3 py-3">
+                            <Link to={`/issues/${testCase.id}`} className="block truncate font-medium text-qf-text">{testCase.title}</Link>
+                            <span className="text-[10px] text-qf-muted">{testCase.owner || 'Unassigned'}</span>
+                          </td>
+                          <td className="px-3 py-3"><Badge tone="muted">{testCase.type || 'Functional'}</Badge></td>
+                          <td className="px-3 py-3 text-qf-secondary">{suiteName(testCase) || <span className="text-qf-muted">—</span>}</td>
+                          <td className="px-3 py-3"><PriorityBadge priority={testCase.priority} /></td>
+                          <td className="px-3 py-3"><ResultBadge result={testCase.lastResult} /></td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center justify-end gap-1">
+                              <Link to={`/test-runs?create=1&testCaseId=${encodeURIComponent(testCase.id)}`} className="rounded p-1 text-qf-muted hover:bg-qf-card hover:text-qf-primary" title="Run this test case" aria-label={`Run ${testCase.id}`}>
+                                <PlayCircle size={14} />
+                              </Link>
+                              {canDelete && (
+                                <button type="button" onClick={() => setPendingDelete(testCase)} className="rounded p-1 text-qf-muted opacity-0 transition hover:text-qf-danger group-hover:opacity-100" aria-label={`Delete ${testCase.id}`}>
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedId === testCase.id && (
+                          <tr className="bg-qf-card/30">
+                            <td colSpan={9} className="px-6 py-4">
+                              <div className="grid gap-4 lg:grid-cols-2">
+                                <div>
+                                  <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-qf-muted">Steps</h3>
+                                  {normalizeSteps(testCase.steps).length ? (
+                                    <ol className="space-y-1.5">
+                                      {normalizeSteps(testCase.steps).map((step, index) => (
+                                        <li key={index} className="rounded border border-qf-border bg-qf-surface px-3 py-2 text-xs">
+                                          <span className="mr-2 font-mono text-[10px] text-qf-muted">{index + 1}.</span>
+                                          <span className="text-qf-text">{step.action}</span>
+                                          {step.expected && <span className="mt-0.5 block pl-5 text-[11px] text-qf-muted">Expected: {step.expected}</span>}
+                                        </li>
+                                      ))}
+                                    </ol>
+                                  ) : <p className="text-xs text-qf-muted">No steps defined.</p>}
+                                </div>
+                                <div className="space-y-3 text-xs">
+                                  <div>
+                                    <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-qf-muted">Preconditions</h3>
+                                    <p className="text-qf-secondary">{testCase.preconditions || 'None recorded.'}</p>
+                                  </div>
+                                  <div>
+                                    <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-qf-muted">Description</h3>
+                                    <p className="text-qf-secondary">{testCase.description || 'No description.'}</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge tone="muted">Status: {testCase.status || 'Ready'}</Badge>
+                                    {(testCase.requirementIds || []).map((id) => <Link key={id} to={`/issues/${id}`} className="text-qf-info hover:underline">{id}</Link>)}
+                                  </div>
+                                  <Link to={`/issues/${testCase.id}`} className="inline-block text-qf-primary hover:underline">Open full details →</Link>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="divide-y divide-qf-border md:hidden">
+                {filtered.map((testCase) => (
+                  <li key={testCase.id} className="p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/issues/${testCase.id}`} className="font-mono text-[11px] font-semibold text-qf-info">{testCase.id}</Link>
+                      <ResultBadge result={testCase.lastResult} />
+                    </div>
+                    <Link to={`/issues/${testCase.id}`} className="mt-1.5 block text-sm font-medium text-qf-text">{testCase.title}</Link>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-qf-muted">
+                      <Badge tone="muted">{testCase.type}</Badge>
+                      <PriorityBadge priority={testCase.priority} />
+                      <span>{suiteName(testCase) || 'No suite'}</span>
+                      <Link to={`/test-runs?create=1&testCaseId=${encodeURIComponent(testCase.id)}`} className="ml-auto text-qf-primary">Run →</Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={`Delete ${pendingDelete?.id || 'test case'}?`}
+        description="This removes the test case from the project and any suite that references it."
+        confirmLabel="Delete test case"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onClose={() => setPendingDelete(null)}
+      />
     </MainLayout>
   )
 }

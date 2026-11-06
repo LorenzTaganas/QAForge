@@ -79,4 +79,22 @@ router.patch('/:sprintId', authorizeRoles('Admin', 'QA Lead', 'Project Manager')
   }
 })
 
+router.delete('/:sprintId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+  try {
+    const store = await readQaStore()
+    const snapshot = getSnapshot(store, req.user.id)
+    const sprints = Array.isArray(snapshot.sprints) ? snapshot.sprints : []
+    const remaining = sprints.filter((sprint) => sprint.id !== req.params.sprintId)
+    if (remaining.length === sprints.length) return res.status(404).json({ success: false, message: 'Sprint not found.' })
+    const tasks = (Array.isArray(snapshot.tasks) ? snapshot.tasks : []).map((task) => (
+      task.sprintId === req.params.sprintId ? { ...task, sprintId: undefined } : task
+    ))
+    store[req.user.id] = { ...snapshot, sprints: remaining, tasks, updatedAt: new Date().toISOString() }
+    await queueQaStoreWrite(store)
+    return res.json({ success: true })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 module.exports = router

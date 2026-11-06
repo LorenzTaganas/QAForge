@@ -678,6 +678,419 @@
     "watchers": [
       "REQ-102"
     ],
-    "updatedAt": "2026-10-21T11:33:35.188Z"
+    "updatedAt": "2026-11-06T06:10:42.163Z"
+  },
+  "usr-qa-001": {
+    "tasks": [
+      {
+        "id": "QAR-101",
+        "title": "Validate OAuth2 token refresh & session revocation",
+        "status": "To Do",
+        "priority": "High",
+        "owner": "QA Tester",
+        "due": "Oct 14, 2026",
+        "type": "Task",
+        "projectKey": "QAR",
+        "labels": [
+          "auth",
+          "security"
+        ]
+      },
+      {
+        "id": "QAR-102",
+        "title": "Verify checkout currency conversion rounding errors",
+        "status": "To Do",
+        "priority": "Medium",
+        "owner": "QA Tester",
+        "due": "Oct 16, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "QAR-103",
+        "title": "Execute API load testing for payment gateway endpoints",
+        "status": "In Progress",
+        "priority": "High",
+        "owner": "Developer",
+        "due": "Oct 12, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "QAR-104",
+        "title": "Update automated smoke test suite for v2.4 release",
+        "status": "In Progress",
+        "priority": "Medium",
+        "owner": "QA Lead",
+        "due": "Oct 15, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "QAR-105",
+        "title": "Security audit on role-based permission endpoints",
+        "status": "In Review",
+        "priority": "Critical",
+        "owner": "Security",
+        "due": "Oct 13, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "QAR-106",
+        "title": "Setup automated regression trigger on GitHub Actions",
+        "status": "Done",
+        "priority": "Low",
+        "owner": "DevOps",
+        "due": "Oct 09, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "QAR-107",
+        "title": "Cross-browser compatibility validation (Safari & Firefox)",
+        "status": "Done",
+        "priority": "Medium",
+        "owner": "QA Tester",
+        "due": "Oct 10, 2026",
+        "type": "Task",
+        "projectKey": "QAR"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "REQ-101",
+        "title": "Multi-factor authentication (MFA) enforcement",
+        "owner": "Security Lead",
+        "priority": "High",
+        "status": "Approved",
+        "projectKey": "QAR",
+        "description": "All administrative and tester accounts must support TOTP MFA before accessing production QA telemetry."
+      },
+      {
+        "id": "REQ-102",
+        "title": "Cart checkout error boundary and graceful rollback",
+        "owner": "PM",
+        "priority": "Critical",
+        "status": "Approved",
+        "projectKey": "QAR",
+        "description": "When payment gateway times out, shopping cart contents must remain intact without duplicate charges."
+      },
+      {
+        "id": "REQ-103",
+        "title": "Real-time WebSocket notifications for test run results",
+        "owner": "Developer",
+        "priority": "Medium",
+        "status": "In Review",
+        "projectKey": "QAR",
+        "description": "CI runners broadcast execution outcomes to active dashboard users within 500ms."
+      },
+      {
+        "id": "REQ-104",
+        "title": "Export compliance reports in CSV and PDF formats",
+        "owner": "QA Lead",
+        "priority": "Low",
+        "status": "Draft",
+        "projectKey": "QAR",
+        "description": "Audit trail of all test executions and defect resolutions must be exportable for quarterly compliance."
+      },
+      {
+        "id": "REQ-105",
+        "title": "Role-based test case deletion restrictions",
+        "owner": "QA Lead",
+        "priority": "High",
+        "status": "Approved",
+        "projectKey": "QAR",
+        "description": "Only QA Leads and Project Admins are authorized to deprecate or permanently delete test cases."
+      }
+    ],
+    "testCases": [
+      {
+        "id": "TC-201",
+        "title": "Verify successful login with valid credentials",
+        "type": "Smoke",
+        "priority": "High",
+        "status": "Ready",
+        "owner": "QA Tester",
+        "projectKey": "QAR",
+        "requirementIds": [
+          "REQ-101"
+        ],
+        "lastResult": "Passed",
+        "steps": [
+          "Navigate to /login",
+          "Enter valid email & password",
+          "Click Sign In",
+          "Verify redirection to dashboard"
+        ]
+      },
+      {
+        "id": "TC-202",
+        "title": "Verify lockout after 5 consecutive failed login attempts",
+        "type": "Security",
+        "priority": "Critical",
+        "status": "Ready",
+        "owner": "QA Lead",
+        "projectKey": "QAR",
+        "requirementIds": [
+          "REQ-101"
+        ],
+        "lastResult": "Passed",
+        "steps": [
+          "Attempt 5 invalid passwords",
+          "Check HTTP 429 response",
+          "Verify account lockout banner"
+        ]
+      },
+      {
+        "id": "TC-203",
+        "title": "Validate checkout transaction with expired credit card",
+        "type": "Functional",
+        "priority": "High",
+        "status": "Ready",
+        "owner": "QA Tester",
+        "projectKey": "QAR",
+        "requirementIds": [
+          "REQ-102"
+        ],
+        "lastResult": "Failed",
+        "steps": [
+          "Add item to cart",
+          "Input expired card details",
+          "Submit order",
+          "Verify specific error message"
+        ]
+      },
+      {
+        "id": "TC-204",
+        "title": "Measure response latency under 500 concurrent users",
+        "type": "Performance",
+        "priority": "Medium",
+        "status": "Ready",
+        "owner": "Developer",
+        "projectKey": "QAR",
+        "requirementIds": [
+          "REQ-103"
+        ],
+        "lastResult": "Passed",
+        "steps": [
+          "Spin up Locust swarm",
+          "Trigger GET /api/health and /api/projects",
+          "Monitor p95 latency under 200ms"
+        ]
+      },
+      {
+        "id": "TC-205",
+        "title": "Test password reset token expiry after 15 minutes",
+        "type": "Regression",
+        "priority": "Medium",
+        "status": "Draft",
+        "owner": "QA Tester",
+        "projectKey": "QAR",
+        "requirementIds": [
+          "REQ-105"
+        ],
+        "lastResult": "Not Run",
+        "steps": [
+          "Request password reset",
+          "Wait 16 minutes",
+          "Attempt to submit new password",
+          "Confirm token expired"
+        ]
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-301",
+        "title": "Session token not cleared upon browser tab close",
+        "severity": "Critical",
+        "priority": "Critical",
+        "status": "In Progress",
+        "reporter": "QA Tester",
+        "assignee": "John Cruz",
+        "environment": "Production",
+        "projectKey": "QAR",
+        "labels": [
+          "auth"
+        ]
+      },
+      {
+        "id": "BUG-302",
+        "title": "CSV export truncates special characters and accents",
+        "severity": "Minor",
+        "priority": "Low",
+        "status": "Open",
+        "reporter": "QA Lead",
+        "assignee": "Developer",
+        "environment": "Staging",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "BUG-303",
+        "title": "Kanban card drag animation causes horizontal scroll jitter",
+        "severity": "Major",
+        "priority": "Medium",
+        "status": "Resolved",
+        "reporter": "PM",
+        "assignee": "Frontend Dev",
+        "environment": "Dev",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "BUG-304",
+        "title": "Password field lacks minimum entropy validation",
+        "severity": "Major",
+        "priority": "High",
+        "status": "Open",
+        "reporter": "Security",
+        "assignee": "Backend Dev",
+        "environment": "Staging",
+        "projectKey": "QAR"
+      }
+    ],
+    "projectSettings": {
+      "name": "QAForge Core Platform",
+      "key": "QAR",
+      "defaultEnv": "Staging",
+      "autoCloseDefects": true,
+      "slackWebhook": "",
+      "notifyOnFailure": true
+    },
+    "projects": [
+      {
+        "id": "proj-pp-001",
+        "key": "QAR",
+        "name": "QAForge Core Platform",
+        "lead": "Maria Santos",
+        "category": "Software",
+        "status": "Active",
+        "description": "Quality engineering workspace for the QAForge product."
+      },
+      {
+        "id": "proj-mobile-002",
+        "key": "MOB",
+        "name": "Mobile Banking App",
+        "lead": "Lorenz Taganas",
+        "category": "Software",
+        "status": "Active",
+        "description": "Mobile release quality and regression tracking."
+      }
+    ],
+    "selectedProjectKey": "QAR",
+    "epics": [
+      {
+        "id": "EPIC-1",
+        "title": "Authentication hardening",
+        "status": "In Progress",
+        "owner": "Security Lead",
+        "projectKey": "QAR",
+        "color": "#7C6CF2"
+      },
+      {
+        "id": "EPIC-2",
+        "title": "Release analytics",
+        "status": "To Do",
+        "owner": "QA Lead",
+        "projectKey": "QAR",
+        "color": "#59A8F5"
+      }
+    ],
+    "sprints": [
+      {
+        "id": "SPRINT-24-4",
+        "name": "Sprint 24.4",
+        "goal": "Stabilize authentication and payment flows",
+        "status": "Active",
+        "start": "Oct 1, 2026",
+        "end": "Oct 28, 2026",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "SPRINT-24-5",
+        "name": "Sprint 24.5",
+        "goal": "Improve release reporting and traceability",
+        "status": "Planned",
+        "start": "Oct 29, 2026",
+        "end": "Nov 12, 2026",
+        "projectKey": "QAR"
+      }
+    ],
+    "comments": [
+      {
+        "id": "comment-1",
+        "issueId": "QAR-101",
+        "author": "Maria Santos",
+        "body": "Please include token revocation coverage in the regression run.",
+        "createdAt": "2026-10-03T09:42:00.000Z"
+      },
+      {
+        "id": "comment-2",
+        "issueId": "BUG-301",
+        "author": "John Cruz",
+        "body": "Investigating browser lifecycle behavior and refresh token persistence.",
+        "createdAt": "2026-10-02T16:18:00.000Z"
+      }
+    ],
+    "activity": [
+      {
+        "id": "activity-1",
+        "issueId": "QAR-101",
+        "action": "moved to In Progress",
+        "actor": "Maria Santos",
+        "createdAt": "2026-10-03T09:35:00.000Z"
+      },
+      {
+        "id": "activity-2",
+        "issueId": "BUG-301",
+        "action": "created this issue",
+        "actor": "Lorenz Taganas",
+        "createdAt": "2026-10-02T15:54:00.000Z"
+      }
+    ],
+    "testRuns": [
+      {
+        "id": "RUN-1042",
+        "name": "Release candidate smoke suite",
+        "status": "Completed",
+        "startedAt": "2026-10-03T10:14:00.000Z",
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "environment": "Staging",
+        "projectKey": "QAR"
+      },
+      {
+        "id": "RUN-1041",
+        "name": "Authentication regression",
+        "status": "Completed",
+        "startedAt": "2026-10-02T16:22:00.000Z",
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "environment": "QA",
+        "projectKey": "QAR"
+      }
+    ],
+    "testSuites": [],
+    "notifications": [
+      {
+        "id": "activity-notification-activity-1",
+        "issueId": "QAR-101",
+        "title": "QAR-101",
+        "message": "Maria Santos moved to In Progress",
+        "createdAt": "2026-10-03T09:35:00.000Z",
+        "read": true
+      },
+      {
+        "id": "activity-notification-activity-2",
+        "issueId": "BUG-301",
+        "title": "BUG-301",
+        "message": "Lorenz Taganas created this issue",
+        "createdAt": "2026-10-02T15:54:00.000Z",
+        "read": true
+      }
+    ],
+    "watchers": [],
+    "updatedAt": "2026-11-06T06:06:27.863Z"
   }
 }

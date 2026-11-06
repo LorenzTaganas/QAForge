@@ -1,325 +1,414 @@
-import React, { useEffect, useState } from 'react'
-import { Search, Plus, Bell, HelpCircle, LogOut, X, CheckCircle, FileText, Bug, CheckSquare, Menu } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Bell,
+  Bug,
+  Check,
+  CheckSquare,
+  ChevronDown,
+  CircleHelp,
+  FolderKanban,
+  LogOut,
+  Menu,
+  PlayCircle,
+  Plus,
+  Search,
+  Settings,
+  UserRound,
+  X,
+} from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useQA } from '../../context/useQA'
-import CreateModal from '../common/CreateModal'
-import { useNavigate } from 'react-router-dom'
-import { canCreateIssue } from '../../utils/permissions'
 import { formatTimestamp, getTimestamp } from '../../utils/time'
+import Avatar from '../ui/Avatar'
 
-const Header = ({ onMenuClick }) => {
+const Highlight = ({ text = '', query = '' }) => {
+  const term = query.trim()
+  if (!term) return text
+  const index = text.toLowerCase().indexOf(term.toLowerCase())
+  if (index === -1) return text
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark className="rounded-sm bg-qf-primary/30 px-0.5 text-qf-text">{text.slice(index, index + term.length)}</mark>
+      {text.slice(index + term.length)}
+    </>
+  )
+}
+
+const Header = ({ onMenuClick, onCreate, onQuickCreate }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const {
     tasks,
-    requirements,
-    testCases,
     bugs,
-    activity,
-    searchQuery,
-    setSearchQuery,
-    isCreateModalOpen,
-    setIsCreateModalOpen,
+    testCases,
+    testRuns,
+    projects,
+    selectedProjectKey,
+    setSelectedProjectKey,
     notifications,
     markNotificationRead,
     markAllNotificationsRead,
+    searchQuery,
+    setSearchQuery,
   } = useQA()
 
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showHelp, setShowHelp] = useState(false)
-  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [openMenu, setOpenMenu] = useState(null)
+  const [rawQuery, setRawQuery] = useState('')
+  const [query, setQuery] = useState('')
+  const searchRef = useRef(null)
+
+  const currentProject = projects.find((project) => project.key === selectedProjectKey) || projects[0]
   const notificationItems = Array.isArray(notifications) ? notifications : []
   const recentNotifications = [...notificationItems]
     .sort((first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt))
-    .slice(0, 5)
-  const unreadNotificationCount = notificationItems.filter((notification) => !notification.read).length
+    .slice(0, 6)
+  const unreadCount = notificationItems.filter((notification) => !notification.read).length
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setQuery(rawQuery), 180)
+    return () => window.clearTimeout(timer)
+  }, [rawQuery])
+
+  useEffect(() => {
+    setRawQuery(searchQuery || '')
+    setQuery(searchQuery || '')
+  }, [searchQuery])
 
   useEffect(() => {
     const handleShortcut = (event) => {
-      const activeElement = document.activeElement
-      const isTyping = activeElement?.tagName === 'INPUT'
-        || activeElement?.tagName === 'TEXTAREA'
-        || activeElement?.isContentEditable
+      const element = document.activeElement
+      const isTyping = element?.tagName === 'INPUT' || element?.tagName === 'TEXTAREA' || element?.tagName === 'SELECT' || element?.isContentEditable
 
       if (event.key === '/' && !isTyping) {
         event.preventDefault()
-        document.getElementById('global-search')?.focus()
+        setOpenMenu('search')
+        searchRef.current?.focus()
       }
-
       if (event.key.toLowerCase() === 'c' && !isTyping && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault()
-        setIsCreateModalOpen(true)
-        setShowSearchResults(false)
-        setShowNotifications(false)
-        setShowHelp(false)
+        onCreate()
       }
-
       if (event.key === 'Escape') {
-        setShowSearchResults(false)
-        setShowNotifications(false)
-        setShowHelp(false)
+        setOpenMenu(null)
+        searchRef.current?.blur()
       }
     }
-
     window.addEventListener('keydown', handleShortcut)
     return () => window.removeEventListener('keydown', handleShortcut)
-  }, [])
+  }, [onCreate])
 
-  // Search matches
-  const searchResults = searchQuery.trim()
-    ? [
-        ...tasks
-          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((t) => ({ ...t, category: 'Task', icon: CheckCircle, link: `/issues/${t.id}` })),
-        ...requirements
-          .filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((r) => ({ ...r, category: 'Requirement', icon: FileText, link: `/issues/${r.id}` })),
-        ...testCases
-          .filter((tc) => tc.title.toLowerCase().includes(searchQuery.toLowerCase()) || tc.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((tc) => ({ ...tc, category: 'Test Case', icon: CheckSquare, link: `/issues/${tc.id}` })),
-        ...bugs
-          .filter((b) => b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.id.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((b) => ({ ...b, category: 'Bug', icon: Bug, link: `/issues/${b.id}` })),
-      ].slice(0, 6)
-    : []
+  const results = useMemo(() => {
+    const term = query.trim().toLowerCase()
+    if (!term) return []
+    const match = (value = '') => value.toLowerCase().includes(term)
+    const list = [
+      ...tasks.filter((task) => match(task.id) || match(task.title)).map((task) => ({ id: task.id, title: task.title, type: 'Issue', icon: Bug, to: `/issues/${task.id}` })),
+      ...bugs.filter((bug) => match(bug.id) || match(bug.title)).map((bug) => ({ id: bug.id, title: bug.title, type: 'Issue', icon: Bug, to: `/issues/${bug.id}` })),
+      ...testCases.filter((testCase) => match(testCase.id) || match(testCase.title)).map((testCase) => ({ id: testCase.id, title: testCase.title, type: 'Test case', icon: CheckSquare, to: `/issues/${testCase.id}` })),
+      ...testRuns.filter((run) => match(run.id) || match(run.name || run.title)).map((run) => ({ id: run.id, title: run.name || run.title, type: 'Test run', icon: PlayCircle, to: `/test-runs/${run.id}` })),
+      ...projects.filter((project) => match(project.key) || match(project.name)).map((project) => ({ id: project.key, title: project.name, type: 'Project', icon: FolderKanban, to: '/projects' })),
+    ]
+    return list.slice(0, 8)
+  }, [bugs, projects, query, tasks, testCases, testRuns])
+
+  const closeMenu = () => setOpenMenu(null)
+
+  const handleResult = (result) => {
+    if (result.type === 'Project') setSelectedProjectKey(result.id)
+    navigate(result.to)
+    setRawQuery('')
+    setQuery('')
+    setSearchQuery('')
+    closeMenu()
+  }
+
+  const menuButtonClass = (name) => `rounded-md p-2 transition ${openMenu === name ? 'bg-qf-card text-qf-text' : 'text-qf-secondary hover:bg-qf-card hover:text-qf-text'}`
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#233352] bg-[#0A101E]/80 backdrop-blur-md px-3 text-[#DDE5F2] sm:px-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-        {/* Left: Brand */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <button
-            type="button"
-            onClick={onMenuClick}
-            aria-label="Open navigation menu"
-            className="rounded-md p-2 text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] lg:hidden"
+      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-qf-border bg-qf-sidebar px-3 sm:gap-3 sm:px-4">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+          className="rounded-md p-2 text-qf-secondary hover:bg-qf-card hover:text-qf-text lg:hidden"
+        >
+          <Menu size={19} />
+        </button>
+
+        <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="QAForge home">
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-qf-primary text-sm font-bold text-[#0F1016]">Q</span>
+          <span className="hidden text-[15px] font-semibold tracking-tight text-qf-text sm:inline">QAForge</span>
+        </Link>
+
+        <span className="hidden h-5 w-px bg-qf-border sm:block" />
+
+        <label className="hidden min-w-0 items-center gap-1.5 md:flex">
+          <span className="sr-only">Current project</span>
+          <select
+            value={selectedProjectKey}
+            onChange={(event) => setSelectedProjectKey(event.target.value)}
+            className="max-w-[13rem] rounded-md border border-qf-border bg-qf-surface px-2 py-1.5 text-xs font-medium text-qf-text outline-none transition hover:border-qf-border-strong focus:border-qf-primary"
           >
-            <Menu size={19} />
-          </button>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-[#00F0FF] to-[#3B82F6] font-bold text-[#070B14] shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-              Q
+            {projects.map((project) => (
+              <option key={project.key} value={project.key}>{project.key} · {project.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <div className="relative mx-auto w-full max-w-md">
+          <Search className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-qf-muted" aria-hidden="true" />
+          <input
+            ref={searchRef}
+            id="global-search"
+            type="search"
+            value={rawQuery}
+            onChange={(event) => {
+              setRawQuery(event.target.value)
+              setSearchQuery(event.target.value)
+              setOpenMenu('search')
+            }}
+            onFocus={() => setOpenMenu('search')}
+            placeholder="Search issues, tests, runs…"
+            aria-label="Search workspace"
+            className="w-full rounded-md border border-qf-border bg-qf-input py-1.5 pl-8 pr-14 text-xs text-qf-text placeholder-qf-muted outline-none transition focus:border-qf-primary focus:ring-2 focus:ring-qf-primary/20"
+          />
+          {rawQuery ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRawQuery('')
+                setQuery('')
+                setSearchQuery('')
+              }}
+              className="absolute right-2 top-1.5 rounded p-1 text-qf-muted hover:text-qf-text"
+              aria-label="Clear search"
+            >
+              <X size={13} />
+            </button>
+          ) : (
+            <kbd className="pointer-events-none absolute right-2 top-1.5 rounded border border-qf-border bg-qf-surface px-1.5 py-0.5 text-[10px] font-medium text-qf-muted">/</kbd>
+          )}
+
+          {openMenu === 'search' && query.trim() && (
+            <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-lg border border-qf-border bg-qf-surface shadow-popover animate-fade-in">
+              <p className="border-b border-qf-border px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-qf-muted">
+                {results.length} result{results.length === 1 ? '' : 's'} for “{query.trim()}”
+              </p>
+              {results.length ? (
+                <ul className="max-h-80 overflow-y-auto py-1">
+                  {results.map((result) => {
+                    const Icon = result.icon
+                    return (
+                      <li key={`${result.type}-${result.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleResult(result)}
+                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition hover:bg-qf-card"
+                        >
+                          <Icon size={14} className="shrink-0 text-qf-muted" />
+                          <span className="w-16 shrink-0 font-mono text-[11px] text-qf-primary">{result.id}</span>
+                          <span className="min-w-0 flex-1 truncate text-qf-text">
+                            <Highlight text={result.title || ''} query={query} />
+                          </span>
+                          <span className="shrink-0 text-[10px] text-qf-muted">{result.type}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="px-3 py-6 text-center text-xs text-qf-muted">No issues, test cases, runs, or projects match your search.</p>
+              )}
             </div>
-            <span className="hidden text-base font-bold tracking-wider text-white sm:inline bg-gradient-to-r from-white via-[#DDE5F2] to-[#00F0FF] bg-clip-text text-transparent">QAForge</span>
-          </div>
-
-          <div className="hidden h-4 w-px bg-[#233352] md:block" />
-
-          <div className="hidden items-center gap-1 text-sm md:flex">
-            <button
-              onClick={() => navigate('/projects')}
-              className="rounded px-2.5 py-1 font-medium text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] transition"
-            >
-              Workspaces
-            </button>
-            <button
-              onClick={() => navigate('/projects')}
-              className="rounded px-2.5 py-1 font-medium text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] transition"
-            >
-              Projects
-            </button>
-            <button
-              onClick={() => navigate('/backlog')}
-              className="rounded px-2.5 py-1 font-medium text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] transition"
-            >
-              Filters
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Middle: Global Search */}
-        <div className="relative mx-2 flex min-w-0 flex-1 items-center justify-center px-0 sm:mx-4 sm:max-w-md">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#8B97A9]" />
-            <input
-              id="global-search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowSearchResults(true)
-              }}
-              onFocus={() => setShowSearchResults(true)}
-              placeholder="Search command center..."
-              className="w-full rounded-md border border-[#2B416C] bg-[#070B14]/80 py-1.5 pl-9 pr-8 text-xs text-white placeholder-[#8B97A9] outline-none transition focus:border-[#00F0FF] focus:ring-1 focus:ring-[#00F0FF]/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
-            />
-            {searchQuery ? (
-              <button
-                onClick={() => {
-                  setSearchQuery('')
-                  setShowSearchResults(false)
-                }}
-                className="absolute right-2.5 top-2 text-[#8B97A9] hover:text-[#00F0FF]"
-              >
-                <X size={14} />
-              </button>
-            ) : (
-              <kbd className="absolute right-2.5 top-2 rounded border border-[#2B416C] bg-[#101726] px-1.5 py-0.5 text-[10px] font-medium text-[#8B97A9]">
-                /
-              </kbd>
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenMenu(openMenu === 'create' ? null : 'create')}
+              className="btn-primary hidden h-8 px-2.5 text-xs sm:inline-flex"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'create'}
+            >
+              <Plus size={14} />
+              <span className="hidden lg:inline">Create</span>
+              <ChevronDown size={12} />
+            </button>
+            {openMenu === 'create' && (
+              <div role="menu" className="absolute right-0 top-10 z-50 w-52 overflow-hidden rounded-lg border border-qf-border bg-qf-surface py-1 shadow-popover animate-fade-in">
+                {[
+                  { label: 'Issue', hint: 'Task or bug', icon: Bug, run: () => onQuickCreate('Task') },
+                  { label: 'Bug', hint: 'Report a defect', icon: Bug, run: () => onQuickCreate('Bug') },
+                  { label: 'Test case', hint: 'Add coverage', icon: CheckSquare, run: () => onQuickCreate('TestCase') },
+                  { label: 'Test run', hint: 'Execute tests', icon: PlayCircle, run: () => navigate('/test-runs?create=1') },
+                  { label: 'Project', hint: 'New workspace', icon: FolderKanban, run: () => navigate('/projects?create=1') },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        item.run()
+                        closeMenu()
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-qf-text transition hover:bg-qf-card"
+                    >
+                      <Icon size={14} className="text-qf-muted" />
+                      <span className="flex-1">{item.label}</span>
+                      <span className="text-[10px] text-qf-muted">{item.hint}</span>
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
 
-          {/* Search Results Dropdown */}
-          {showSearchResults && searchQuery.trim() && (
-            <div className="absolute top-12 left-4 right-4 z-50 rounded-xl border border-[#2B416C] bg-[#101726]/95 backdrop-blur-md p-2 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.15)]">
-              <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wider text-[#00F0FF]">
-                Matching Issues ({searchResults.length})
-              </div>
-              {searchResults.length === 0 ? (
-                <div className="p-3 text-center text-xs text-[#8B97A9]">
-                  No issues found matching "{searchQuery}"
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {searchResults.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          navigate(item.link)
-                          setSearchQuery('')
-                          setShowSearchResults(false)
-                        }}
-                        className="flex cursor-pointer items-center justify-between rounded-md p-2 text-xs hover:bg-[#172138] hover:border hover:border-[#00F0FF]/30 transition"
-                      >
-                        <div className="flex items-center gap-2 truncate pr-2">
-                          <Icon size={14} className="text-[#00F0FF] shrink-0" />
-                          <span className="font-semibold text-white">{item.id}</span>
-                          <span className="truncate text-[#DDE5F2]">{item.title}</span>
-                        </div>
-                        <span className="shrink-0 rounded bg-[#172138] px-1.5 py-0.5 text-[10px] text-[#8B97A9] border border-[#2B416C]">
-                          {item.category}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Actions & User Menu */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
-          {canCreateIssue(user?.role) && (
+          <div className="relative">
             <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="btn-primary hidden h-8 px-3 text-xs xl:inline-flex"
-            >
-              <Plus size={14} />
-              Create
-            </button>
-          )}
-
-          <div className="relative flex items-center gap-1">
-            <button
-              onClick={() => {
-                setShowNotifications(!showNotifications)
-                setShowHelp(false)
-              }}
-              className="relative rounded-md p-1.5 text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] transition"
-              title="Notifications"
+              type="button"
+              onClick={() => setOpenMenu(openMenu === 'notifications' ? null : 'notifications')}
+              className={`relative ${menuButtonClass('notifications')}`}
+              aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'notifications'}
             >
               <Bell size={18} />
-              {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00F0FF] px-1 text-[9px] font-bold text-[#070B14] shadow-[0_0_8px_#00F0FF]">
-                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-qf-danger px-1 text-[9px] font-bold text-[#1A0E10]">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
-
-            {/* Notification Drawer */}
-            {showNotifications && (
-              <div className="absolute right-0 top-10 z-50 w-72 rounded-xl border border-[#2B416C] bg-[#101726]/95 backdrop-blur-md p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.15)]">
-                <div className="flex items-center justify-between border-b border-[#233352] pb-2 mb-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Signals</span>
-                  <button type="button" onClick={markAllNotificationsRead} className="text-[10px] text-[#00F0FF] hover:underline">
-                    Mark all read
-                  </button>
+            {openMenu === 'notifications' && (
+              <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-lg border border-qf-border bg-qf-surface shadow-popover animate-fade-in">
+                <div className="flex items-center justify-between border-b border-qf-border px-3 py-2.5">
+                  <span className="text-xs font-semibold text-qf-text">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button type="button" onClick={markAllNotificationsRead} className="text-[11px] font-medium text-qf-primary hover:underline">
+                      Mark all read
+                    </button>
+                  )}
                 </div>
-                <div className="space-y-2 text-xs">
+                <div className="max-h-80 overflow-y-auto">
                   {recentNotifications.length ? recentNotifications.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        markNotificationRead(item.id)
+                        if (!item.read) markNotificationRead(item.id)
                         if (item.issueId) navigate(`/issues/${item.issueId}`)
-                        setShowNotifications(false)
+                        closeMenu()
                       }}
-                      className={`w-full rounded-lg p-2 text-left hover:bg-[#172138] transition ${item.read ? '' : 'bg-[#00F0FF]/10 border border-[#00F0FF]/20'}`}
+                      className={`flex w-full items-start gap-2.5 border-b border-qf-border/60 px-3 py-2.5 text-left transition last:border-0 hover:bg-qf-card ${item.read ? '' : 'bg-qf-primary/5'}`}
                     >
-                      <p className="font-semibold text-white">{item.title || item.issueId || 'QAForge notification'}</p>
-                      <p className="mt-0.5 text-[11px] text-[#8B97A9]">{item.message || `${item.actor || 'QAForge'} ${item.action || ''}`} · {formatTimestamp(item.createdAt)}</p>
+                      <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.read ? 'bg-qf-border-strong' : 'bg-qf-primary'}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium text-qf-text">{item.title || item.issueId || 'Workspace update'}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-qf-muted">{item.message || `${item.actor || 'QAForge'} ${item.action || ''}`}</span>
+                        <span className="mt-0.5 block text-[10px] text-qf-muted">{formatTimestamp(item.createdAt)}</span>
+                      </span>
+                      {item.read && <Check size={13} className="mt-1 shrink-0 text-qf-muted" />}
                     </button>
                   )) : (
-                    <p className="p-2 text-center text-[11px] text-[#8B97A9]">No active signals.</p>
+                    <p className="px-3 py-8 text-center text-xs text-qf-muted">You're all caught up.</p>
                   )}
                 </div>
-                <button type="button" onClick={() => { navigate('/audit-log'); setShowNotifications(false) }} className="mt-2 w-full border-t border-[#233352] pt-2 text-center text-[11px] text-[#00F0FF] hover:underline">View activity log</button>
-              </div>
-            )}
-
-            <button
-              onClick={() => {
-                setShowHelp(!showHelp)
-                setShowNotifications(false)
-              }}
-              className="rounded-md p-1.5 text-[#8B97A9] hover:bg-[#172138] hover:text-[#00F0FF] transition"
-              title="Help & Shortcuts"
-            >
-              <HelpCircle size={18} />
-            </button>
-
-            {/* Help Drawer */}
-            {showHelp && (
-              <div className="absolute right-0 top-10 z-50 w-64 rounded-xl border border-[#2B416C] bg-[#101726]/95 backdrop-blur-md p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.15)]">
-                <div className="border-b border-[#233352] pb-2 mb-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Tactical Guide</span>
-                </div>
-                <div className="space-y-1.5 text-[11px] text-[#8B97A9]">
-                  <p>• Use <strong className="text-[#00F0FF]">+ Create</strong> to initialize work items, test cases, or bugs.</p>
-                  <p>• Drag isometric cards between columns to update status.</p>
-                  <p>• Open any issue key to edit details, comments, and links.</p>
-                  <p>• Press <kbd className="rounded border border-[#2B416C] bg-[#070B14] px-1 text-[#00F0FF]">/</kbd> to focus global search.</p>
-                  <p>• Press <kbd className="rounded border border-[#2B416C] bg-[#070B14] px-1 text-[#00F0FF]">C</kbd> to quick-create an issue.</p>
-                </div>
-                <button type="button" onClick={() => { navigate('/projects'); setShowHelp(false) }} className="mt-3 text-[11px] text-[#00F0FF] hover:underline">Open workspace projects</button>
+                <Link to="/audit-log" onClick={closeMenu} className="block border-t border-qf-border px-3 py-2 text-center text-[11px] font-medium text-qf-primary hover:bg-qf-card">
+                  View all activity
+                </Link>
               </div>
             )}
           </div>
 
-          <div className="hidden h-4 w-px bg-[#233352] sm:block" />
-
-          <div className="flex items-center gap-2">
-            <div className="hidden text-right md:block">
-              <div className="text-xs font-semibold text-white">{user?.name || 'Commander'}</div>
-              <div className="text-[10px] text-[#00F0FF]">{user?.role || 'QA Lead'}</div>
-            </div>
-
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#172138] text-xs font-bold text-[#00F0FF] border border-[#00F0FF]/40 shadow-[0_0_10px_rgba(0,240,255,0.2)]">
-              {user?.name?.charAt(0) || 'Q'}
-            </div>
-
+          <div className="relative hidden sm:block">
             <button
-              onClick={logout}
-              title="Sign Out"
-              aria-label="Sign out"
-              className="rounded-md p-2 text-[#8B97A9] hover:bg-[#172138] hover:text-red-400 transition"
+              type="button"
+              onClick={() => setOpenMenu(openMenu === 'help' ? null : 'help')}
+              className={menuButtonClass('help')}
+              aria-label="Help and keyboard shortcuts"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'help'}
             >
-              <LogOut size={16} />
+              <CircleHelp size={18} />
             </button>
+            {openMenu === 'help' && (
+              <div className="absolute right-0 top-11 z-50 w-72 rounded-lg border border-qf-border bg-qf-surface p-3 shadow-popover animate-fade-in">
+                <p className="mb-2 text-xs font-semibold text-qf-text">Keyboard shortcuts</p>
+                <dl className="space-y-1.5 text-[11px] text-qf-secondary">
+                  <div className="flex items-center justify-between"><dt>Focus search</dt><dd><kbd className="rounded border border-qf-border bg-qf-card px-1.5 py-0.5">/</kbd></dd></div>
+                  <div className="flex items-center justify-between"><dt>Create issue</dt><dd><kbd className="rounded border border-qf-border bg-qf-card px-1.5 py-0.5">C</kbd></dd></div>
+                  <div className="flex items-center justify-between"><dt>Close menu</dt><dd><kbd className="rounded border border-qf-border bg-qf-card px-1.5 py-0.5">Esc</kbd></dd></div>
+                </dl>
+                <p className="mt-3 border-t border-qf-border pt-2 text-[11px] leading-5 text-qf-muted">
+                  Use the project switcher to scope dashboards, issues, tests, and reports.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <span className="mx-0.5 hidden h-5 w-px bg-qf-border sm:block" />
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenMenu(openMenu === 'profile' ? null : 'profile')}
+              className="flex items-center gap-2 rounded-md p-1 transition hover:bg-qf-card"
+              aria-label="Open profile menu"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'profile'}
+            >
+              <Avatar name={user?.name || 'QAForge User'} size="md" />
+              <span className="hidden text-left lg:block">
+                <span className="block max-w-[9rem] truncate text-xs font-medium text-qf-text">{user?.name || 'QA User'}</span>
+                <span className="block text-[10px] text-qf-muted">{user?.role || 'QA Tester'}</span>
+              </span>
+              <ChevronDown size={12} className="hidden text-qf-muted lg:block" />
+            </button>
+            {openMenu === 'profile' && (
+              <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-lg border border-qf-border bg-qf-surface shadow-popover animate-fade-in">
+                <div className="border-b border-qf-border px-3 py-3">
+                  <p className="truncate text-xs font-semibold text-qf-text">{user?.name}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-qf-muted">{user?.email}</p>
+                  <p className="mt-1 inline-flex rounded border border-qf-border bg-qf-card px-1.5 py-0.5 text-[10px] text-qf-secondary">{user?.role}</p>
+                </div>
+                <Link to="/settings" onClick={closeMenu} className="flex items-center gap-2 px-3 py-2 text-xs text-qf-text hover:bg-qf-card">
+                  <UserRound size={14} className="text-qf-muted" /> Profile & settings
+                </Link>
+                <Link to="/my-work" onClick={closeMenu} className="flex items-center gap-2 px-3 py-2 text-xs text-qf-text hover:bg-qf-card">
+                  <CheckSquare size={14} className="text-qf-muted" /> My work
+                </Link>
+                <Link to="/settings" onClick={closeMenu} className="flex items-center gap-2 px-3 py-2 text-xs text-qf-text hover:bg-qf-card">
+                  <Settings size={14} className="text-qf-muted" /> Workspace settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex w-full items-center gap-2 border-t border-qf-border px-3 py-2 text-left text-xs text-qf-danger hover:bg-qf-danger/10"
+                >
+                  <LogOut size={14} /> Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Global Create Issue Modal */}
-      <CreateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
+      {openMenu && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 cursor-default"
+          aria-label="Close menu"
+          onClick={closeMenu}
+          tabIndex={-1}
+        />
+      )}
     </>
   )
 }

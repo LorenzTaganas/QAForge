@@ -1,260 +1,206 @@
-import React, { useState, useMemo } from 'react'
-import MainLayout from '../components/layout/MainLayout'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Filter, AlertTriangle, Bug, Check, Trash2, ArrowUpDown } from 'lucide-react'
+import { AlertTriangle, Bug, Plus, Search, Trash2 } from 'lucide-react'
+import MainLayout from '../components/layout/MainLayout'
+import PageHeader from '../components/ui/PageHeader'
+import MetricCard from '../components/ui/MetricCard'
+import EmptyState, { LoadingState } from '../components/ui/EmptyState'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import Pagination from '../components/ui/Pagination'
+import { Badge, PriorityBadge, SeverityBadge, StatusBadge } from '../components/ui/Badges'
 import { useQA } from '../context/useQA'
 import { useAuth } from '../context/AuthContext'
 import { canDeleteIssue } from '../utils/permissions'
+import { belongsToProject } from '../utils/projectScope'
 
-const severityStyles = {
-  Blocker: 'bg-red-500/15 text-red-400 border-red-500/30',
-  Critical: 'bg-red-500/10 text-red-400 border-red-500/20',
-  Major: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  Minor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  Trivial: 'bg-jira-surface-2 text-jira-muted border-jira-border',
-}
-
-const statusOptions = ['Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed']
+const statuses = ['Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed', "Won't Fix", 'Duplicate']
+const severities = ['Blocker', 'Critical', 'Major', 'Minor', 'Trivial']
+const pageSize = 20
 
 const BugsPage = () => {
-  const { bugs, selectedProjectKey, updateBugStatus, deleteBug, setIsCreateModalOpen, searchQuery } = useQA()
+  const { bugs, selectedProjectKey, hydrating, searchQuery, openCreateModal, updateBugStatus, deleteBug } = useQA()
   const { user } = useAuth()
   const canDelete = canDeleteIssue(user?.role)
+  const [query, setQuery] = useState('')
   const [severityFilter, setSeverityFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
-  const [activeMenuId, setActiveMenuId] = useState(null)
-  const [showFilterBar, setShowFilterBar] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const filteredBugs = useMemo(() => {
-    return bugs.filter((bug) => {
-      const belongsToProject = bug.projectKey ? bug.projectKey === selectedProjectKey : selectedProjectKey === 'QAR'
-      const matchSearch = searchQuery
-        ? bug.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          bug.id.toLowerCase().includes(searchQuery.toLowerCase())
-        : true
-      const matchSeverity = severityFilter === 'All' ? true : bug.severity === severityFilter
-      const matchStatus = statusFilter === 'All' ? true : bug.status === statusFilter
-      return belongsToProject && matchSearch && matchSeverity && matchStatus
+  const projectBugs = useMemo(
+    () => bugs.filter((bug) => belongsToProject(bug, selectedProjectKey)),
+    [bugs, selectedProjectKey],
+  )
+
+  const stats = useMemo(() => ({
+    total: projectBugs.length,
+    critical: projectBugs.filter((bug) => ['Critical', 'Blocker'].includes(bug.severity)).length,
+    open: projectBugs.filter((bug) => ['Open', 'In Progress', 'Reopened'].includes(bug.status)).length,
+    resolved: projectBugs.filter((bug) => ['Resolved', 'Verified', 'Closed'].includes(bug.status)).length,
+  }), [projectBugs])
+
+  const filtered = useMemo(() => {
+    const term = (query || searchQuery).trim().toLowerCase()
+    return projectBugs.filter((bug) => {
+      const matchesSearch = !term || `${bug.id} ${bug.title} ${bug.assignee || ''} ${bug.environment || ''}`.toLowerCase().includes(term)
+      return matchesSearch
+        && (severityFilter === 'All' || bug.severity === severityFilter)
+        && (statusFilter === 'All' || bug.status === statusFilter)
     })
-  }, [bugs, selectedProjectKey, searchQuery, severityFilter, statusFilter])
+  }, [projectBugs, query, searchQuery, severityFilter, statusFilter])
 
-  const stats = useMemo(() => {
-    return {
-      total: bugs.length,
-      critical: bugs.filter((b) => b.severity === 'Critical' || b.severity === 'Blocker').length,
-      open: bugs.filter((b) => b.status === 'Open' || b.status === 'In Progress' || b.status === 'Reopened').length,
-      resolved: bugs.filter((b) => b.status === 'Resolved' || b.status === 'Closed').length,
-    }
-  }, [bugs])
+  useEffect(() => { setPage(1) }, [query, searchQuery, severityFilter, statusFilter])
+  const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const filtersActive = query || severityFilter !== 'All' || statusFilter !== 'All'
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
+    await deleteBug(pendingDelete.id)
+    setDeleting(false)
+    setPendingDelete(null)
+  }
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-4 border-b border-jira-border pb-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">
-              Quality Assurance / Defect Management
-            </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
-              Bugs & Defects Triage
-            </h1>
-          </div>
+      <div className="flex flex-col gap-5">
+        <PageHeader
+          eyebrow="Defect management"
+          title="Bugs"
+          description="Triage defects by severity, reproduce them from linked test evidence, and track them to closure."
+          actions={<button type="button" onClick={() => openCreateModal('Bug')} className="btn-primary text-xs"><Plus size={14} /> Report bug</button>}
+        />
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilterBar(!showFilterBar)}
-              className={`btn-ghost text-xs ${showFilterBar ? 'border-jira-blue text-white' : ''}`}
-            >
-              <Filter size={14} />
-              Filter
-            </button>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="btn-primary text-xs"
-            >
-              <Plus size={14} />
-              Report Bug
-            </button>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Reported defects" value={stats.total} icon={Bug} />
+          <MetricCard label="Critical or blocker" value={stats.critical} icon={AlertTriangle} tone="danger" />
+          <MetricCard label="Active" value={stats.open} icon={Bug} tone="warning" hint="Open, in progress, or reopened" />
+          <MetricCard label="Resolved" value={stats.resolved} icon={Bug} tone="success" />
         </div>
 
-        {/* Filter Bar */}
-        {showFilterBar && (
-          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-jira-border bg-jira-surface/80 p-3 text-xs animate-fade-in">
-            <div className="flex items-center gap-2">
-              <span className="text-jira-muted font-medium">Severity:</span>
-              {['All', 'Blocker', 'Critical', 'Major', 'Minor', 'Trivial'].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSeverityFilter(s)}
-                  className={`rounded px-2 py-1 transition ${
-                    severityFilter === s
-                      ? 'bg-jira-blue text-white font-semibold'
-                      : 'bg-jira-surface-2 text-jira-muted hover:text-white'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            <div className="h-4 w-px bg-jira-border" />
-
-            <div className="flex items-center gap-2">
-              <span className="text-jira-muted font-medium">Status:</span>
-              {['All', 'Open', 'In Progress', 'Resolved', 'Verified', 'Reopened', 'Closed'].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`rounded px-2 py-1 transition ${
-                    statusFilter === st
-                      ? 'bg-jira-blue text-white font-semibold'
-                      : 'bg-jira-surface-2 text-jira-muted hover:text-white'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats Row */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Total Reported</div>
-            <div className="mt-2 text-2xl font-bold text-white">{stats.total}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Critical / Blocker</div>
-            <div className="mt-2 text-2xl font-bold text-red-400">{stats.critical}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Active / In Progress</div>
-            <div className="mt-2 text-2xl font-bold text-amber-400">{stats.open}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-jira-muted">Resolved & Closed</div>
-            <div className="mt-2 text-2xl font-bold text-emerald-400">{stats.resolved}</div>
-          </div>
-        </div>
-
-        {/* Defects Table */}
-        <div className="rounded-lg border border-jira-border bg-jira-surface/40">
-          <div className="divide-y divide-jira-border/60 md:hidden">
-            {filteredBugs.length === 0 ? (
-              <p className="px-4 py-8 text-center text-xs text-jira-muted">No defects found matching current filters.</p>
-            ) : filteredBugs.map((bug) => (
-              <article key={bug.id} className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <Link to={`/issues/${bug.id}`} className="font-mono text-[11px] font-semibold text-rose-400 hover:underline">{bug.id}</Link>
-                  <select value={bug.status} onChange={(event) => updateBugStatus(bug.id, event.target.value)} className="max-w-[8rem] rounded border border-jira-border bg-jira-surface-2 px-2 py-1 text-[11px] text-jira-text">
-                    {statusOptions.map((option) => <option key={option}>{option}</option>)}
-                  </select>
-                </div>
-                <Link to={`/issues/${bug.id}`} className="mt-2 block text-sm font-medium text-white">{bug.title}</Link>
-                <div className="mt-3 flex flex-wrap gap-2 text-[10px]">
-                  <span className={`rounded border px-2 py-1 font-bold uppercase ${severityStyles[bug.severity] || severityStyles.Major}`}>{bug.severity}</span>
-                  <span className="rounded border border-jira-border px-2 py-1 text-jira-text">{bug.priority}</span>
-                  <span className="rounded border border-jira-border px-2 py-1 text-jira-muted">{bug.assignee || 'Unassigned'}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-          <table className="hidden w-full text-left text-xs border-collapse md:table">
-            <thead className="border-b border-jira-border bg-jira-surface-2 text-[11px] font-bold uppercase tracking-wider text-jira-muted">
-              <tr>
-                <th className="px-4 py-3">Key</th>
-                <th className="px-4 py-3">Summary</th>
-                <th className="px-4 py-3">Severity</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Environment</th>
-                <th className="px-4 py-3">Assignee</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-jira-border/60">
-              {filteredBugs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-xs text-jira-muted">
-                    No defects found matching current filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredBugs.map((bug) => (
-                  <tr key={bug.id} className="table-row group">
-                    <td className="px-4 py-3 font-mono font-semibold text-rose-400">
-                      <div className="flex items-center gap-1.5">
-                        <Bug size={13} className="text-rose-400" />
-                        <Link to={`/issues/${bug.id}`} className="hover:underline">{bug.id}</Link>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-white max-w-sm truncate"><Link to={`/issues/${bug.id}`} className="hover:text-[#B7D5FF]">{bug.title}</Link></td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase border ${severityStyles[bug.severity] || severityStyles.Major}`}>
-                        {bug.severity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-jira-text">{bug.priority}</td>
-                    <td className="px-4 py-3">
-                      <div className="relative inline-block">
-                        <button
-                          onClick={() => setActiveMenuId(activeMenuId === bug.id ? null : bug.id)}
-                          className="flex items-center gap-1 rounded bg-jira-surface-2 px-2 py-1 text-[11px] font-semibold text-jira-text border border-jira-border hover:bg-jira-surface-3 transition"
-                        >
-                          <span>{bug.status}</span>
-                          <ArrowUpDown size={10} className="text-jira-muted" />
-                        </button>
-
-                        {activeMenuId === bug.id && (
-                          <div className="absolute left-0 mt-1 z-30 w-36 rounded-md border border-jira-border bg-jira-surface p-1 shadow-lift">
-                            {statusOptions.map((opt) => (
-                              <button
-                                key={opt}
-                                onClick={() => {
-                                  updateBugStatus(bug.id, opt)
-                                  setActiveMenuId(null)
-                                }}
-                                className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-[11px] transition ${
-                                  bug.status === opt ? 'bg-jira-blue text-white' : 'text-jira-text hover:bg-jira-surface-2'
-                                }`}
-                              >
-                                <span>{opt}</span>
-                                {bug.status === opt && <Check size={12} />}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-jira-muted">{bug.environment || 'Staging'}</td>
-                    <td className="px-4 py-3 text-jira-text">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-jira-surface-3 text-[10px] text-white">
-                          {bug.assignee?.charAt(0) || 'D'}
-                        </div>
-                        <span>{bug.assignee || 'Unassigned'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {canDelete && (
-                        <button
-                          onClick={() => deleteBug(bug.id)}
-                          className="rounded p-1 text-jira-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
+        <div className="rounded-lg border border-qf-border bg-qf-surface">
+          <div className="flex flex-col gap-3 border-b border-qf-border p-3 sm:flex-row sm:items-center">
+            <label className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-2.5 text-qf-muted" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by id, summary, assignee, or environment" className="input-field pl-9 text-xs" aria-label="Search bugs" />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)} className="input-field w-auto py-2 text-xs" aria-label="Filter by severity">
+                <option value="All">All severities</option>
+                {severities.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-field w-auto py-2 text-xs" aria-label="Filter by status">
+                <option value="All">All statuses</option>
+                {statuses.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              {filtersActive && (
+                <button type="button" onClick={() => { setQuery(''); setSeverityFilter('All'); setStatusFilter('All') }} className="btn-subtle text-xs">Clear</button>
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
+
+          {hydrating ? (
+            <div className="p-4"><LoadingState label="Loading defects" rows={6} /></div>
+          ) : visible.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={Bug}
+                title={projectBugs.length ? 'No defects match these filters' : 'No defects reported'}
+                description={projectBugs.length
+                  ? 'Try a different search, severity, or status.'
+                  : 'When a test fails during a run, log it as a defect from the execution screen.'}
+                action={projectBugs.length
+                  ? <button type="button" onClick={() => { setQuery(''); setSeverityFilter('All'); setStatusFilter('All') }} className="btn-ghost text-xs">Clear filters</button>
+                  : <button type="button" onClick={() => openCreateModal('Bug')} className="btn-primary text-xs"><Plus size={14} /> Report bug</button>}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[960px] text-left text-xs">
+                  <thead className="bg-qf-card/50 text-[11px] uppercase tracking-wider text-qf-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Key</th>
+                      <th className="px-4 py-3 font-medium">Summary</th>
+                      <th className="px-4 py-3 font-medium">Severity</th>
+                      <th className="px-4 py-3 font-medium">Priority</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Environment</th>
+                      <th className="px-4 py-3 font-medium">Assignee</th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-qf-border">
+                    {visible.map((bug) => (
+                      <tr key={bug.id} className="group transition hover:bg-qf-card/50">
+                        <td className="px-4 py-3">
+                          <Link to={`/issues/${bug.id}`} className="flex items-center gap-1.5 font-mono font-semibold text-qf-danger hover:underline"><Bug size={12} />{bug.id}</Link>
+                        </td>
+                        <td className="max-w-[22rem] px-4 py-3">
+                          <Link to={`/issues/${bug.id}`} className="block truncate font-medium text-qf-text">{bug.title}</Link>
+                          <span className="text-[10px] text-qf-muted">Reported by {bug.reporter || 'Unknown'}</span>
+                        </td>
+                        <td className="px-4 py-3"><SeverityBadge severity={bug.severity} /></td>
+                        <td className="px-4 py-3"><PriorityBadge priority={bug.priority} /></td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={bug.status}
+                            onChange={(event) => updateBugStatus(bug.id, event.target.value)}
+                            className="max-w-[9.5rem] rounded border border-qf-border bg-qf-input px-2 py-1 text-[11px] text-qf-secondary outline-none transition hover:text-qf-text focus:border-qf-primary"
+                            aria-label={`Status for ${bug.id}`}
+                          >
+                            {[...new Set([bug.status, ...statuses])].filter(Boolean).map((option) => <option key={option} value={option}>{option}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3"><Badge tone="muted">{bug.environment || 'Not set'}</Badge></td>
+                        <td className="px-4 py-3 text-qf-secondary">{bug.assignee || <span className="text-qf-muted">Unassigned</span>}</td>
+                        <td className="px-4 py-3 text-right">
+                          {canDelete && (
+                            <button type="button" onClick={() => setPendingDelete(bug)} className="rounded p-1 text-qf-muted opacity-0 transition hover:text-qf-danger group-hover:opacity-100" aria-label={`Delete ${bug.id}`}>
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="divide-y divide-qf-border md:hidden">
+                {visible.map((bug) => (
+                  <li key={bug.id} className="p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/issues/${bug.id}`} className="font-mono text-[11px] font-semibold text-qf-danger">{bug.id}</Link>
+                      <StatusBadge status={bug.status} />
+                    </div>
+                    <Link to={`/issues/${bug.id}`} className="mt-1.5 block text-sm font-medium text-qf-text">{bug.title}</Link>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <SeverityBadge severity={bug.severity} />
+                      <PriorityBadge priority={bug.priority} />
+                      <Badge tone="muted">{bug.environment || 'No environment'}</Badge>
+                      <span className="text-[11px] text-qf-muted">{bug.assignee || 'Unassigned'}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} itemLabel="defects" />
+            </>
+          )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={`Delete ${pendingDelete?.id || 'defect'}?`}
+        description="This permanently removes the defect and its comments. This cannot be undone."
+        confirmLabel="Delete defect"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onClose={() => setPendingDelete(null)}
+      />
     </MainLayout>
   )
 }

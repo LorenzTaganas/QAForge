@@ -48,6 +48,9 @@ router.post('/', async (req, res, next) => {
       id: `BUG-${nextNumber}`,
       title: body.title.trim(),
       description: typeof body.description === 'string' ? body.description.trim() : '',
+      stepsToReproduce: typeof body.stepsToReproduce === 'string' ? body.stepsToReproduce.trim() : '',
+      expectedBehavior: typeof body.expectedBehavior === 'string' ? body.expectedBehavior.trim() : '',
+      actualBehavior: typeof body.actualBehavior === 'string' ? body.actualBehavior.trim() : '',
       severity: body.severity || 'Major',
       priority: body.priority || 'High',
       status: 'Open',
@@ -56,6 +59,9 @@ router.post('/', async (req, res, next) => {
       environment: typeof body.environment === 'string' ? body.environment.trim() : '',
       projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
       labels: normalizeLabels(body.labels),
+      linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
+      linkedTestCaseId: typeof body.linkedTestCaseId === 'string' ? body.linkedTestCaseId : null,
+      linkedTestRunId: typeof body.linkedTestRunId === 'string' ? body.linkedTestRunId : null,
     }
     store[req.user.id] = { ...snapshot, bugs: [bug, ...bugs], updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)
@@ -74,7 +80,7 @@ router.patch('/:bugId', async (req, res, next) => {
     if (index === -1) return res.status(404).json({ success: false, message: 'Bug not found.' })
 
     const updates = {}
-    for (const field of ['title', 'description', 'reporter', 'assignee', 'environment', 'projectKey']) {
+    for (const field of ['title', 'description', 'stepsToReproduce', 'expectedBehavior', 'actualBehavior', 'reporter', 'assignee', 'environment', 'projectKey', 'linkedTestCaseId', 'linkedTestRunId']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (req.body.severity && allowedSeverities.includes(req.body.severity)) updates.severity = req.body.severity
@@ -86,6 +92,7 @@ router.patch('/:bugId', async (req, res, next) => {
       updates.status = req.body.status
     }
     if (Array.isArray(req.body.labels)) updates.labels = normalizeLabels(req.body.labels)
+    if (Array.isArray(req.body.linkedIssueIds)) updates.linkedIssueIds = req.body.linkedIssueIds.filter((id) => typeof id === 'string')
     bugs[index] = { ...bugs[index], ...updates }
     store[req.user.id] = { ...snapshot, bugs, updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)

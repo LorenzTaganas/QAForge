@@ -44,6 +44,8 @@ router.post('/', async (req, res, next) => {
       sprintId: typeof body.sprintId === 'string' ? body.sprintId : undefined,
       epicId: typeof body.epicId === 'string' ? body.epicId : undefined,
       labels: Array.isArray(body.labels) ? body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean) : [],
+      description: typeof body.description === 'string' ? body.description.trim() : '',
+      linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
     }
     store[req.user.id] = { ...snapshot, tasks: [task, ...tasks], updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)
@@ -61,12 +63,13 @@ router.patch('/:taskId', async (req, res, next) => {
     const index = tasks.findIndex((task) => task.id === req.params.taskId)
     if (index === -1) return res.status(404).json({ success: false, message: 'Task not found.' })
     const updates = {}
-    for (const field of ['title', 'owner', 'due', 'projectKey', 'sprintId', 'epicId']) {
+    for (const field of ['title', 'owner', 'due', 'projectKey', 'sprintId', 'epicId', 'description']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (statuses.includes(req.body.status)) updates.status = req.body.status
     if (priorities.includes(req.body.priority)) updates.priority = req.body.priority
     if (Array.isArray(req.body.labels)) updates.labels = req.body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean)
+    if (Array.isArray(req.body.linkedIssueIds)) updates.linkedIssueIds = req.body.linkedIssueIds.filter((id) => typeof id === 'string')
     tasks[index] = { ...tasks[index], ...updates }
     store[req.user.id] = { ...snapshot, tasks, updatedAt: new Date().toISOString() }
     await queueQaStoreWrite(store)

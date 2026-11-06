@@ -73,4 +73,22 @@ router.patch('/:epicId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), 
   }
 })
 
+router.delete('/:epicId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+  try {
+    const store = await readQaStore()
+    const snapshot = getSnapshot(store, req.user.id)
+    const epics = Array.isArray(snapshot.epics) ? snapshot.epics : []
+    const remaining = epics.filter((epic) => epic.id !== req.params.epicId)
+    if (remaining.length === epics.length) return res.status(404).json({ success: false, message: 'Epic not found.' })
+    const tasks = (Array.isArray(snapshot.tasks) ? snapshot.tasks : []).map((task) => (
+      task.epicId === req.params.epicId ? { ...task, epicId: undefined } : task
+    ))
+    store[req.user.id] = { ...snapshot, epics: remaining, tasks, updatedAt: new Date().toISOString() }
+    await queueQaStoreWrite(store)
+    return res.json({ success: true })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 module.exports = router

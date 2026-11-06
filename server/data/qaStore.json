@@ -37,7 +37,7 @@
       {
         "id": "QAR-101",
         "title": "Validate OAuth2 token refresh & session revocation",
-        "status": "In Progress",
+        "status": "In Review",
         "priority": "High",
         "owner": "QA Tester",
         "due": "Oct 14, 2026",
@@ -55,7 +55,7 @@
       {
         "id": "QAR-103",
         "title": "Execute API load testing for payment gateway endpoints",
-        "status": "In Review",
+        "status": "In Progress",
         "priority": "High",
         "owner": "Developer",
         "due": "Oct 12, 2026",
@@ -345,6 +345,41 @@
       }
     ],
     "activity": [
+      {
+        "id": "activity-1792581482471",
+        "issueId": "QAR-103",
+        "action": "moved to In Progress",
+        "actor": "You",
+        "createdAt": "2026-10-21T11:18:02.471Z"
+      },
+      {
+        "id": "activity-1792581480788",
+        "issueId": "QAR-101",
+        "action": "moved to In Review",
+        "actor": "You",
+        "createdAt": "2026-10-21T11:18:00.788Z"
+      },
+      {
+        "id": "activity-1792581477935",
+        "issueId": "QAR-101",
+        "action": "moved to In Progress",
+        "actor": "You",
+        "createdAt": "2026-10-21T11:17:57.935Z"
+      },
+      {
+        "id": "activity-1792581476118",
+        "issueId": "QAR-101",
+        "action": "moved to In Progress",
+        "actor": "You",
+        "createdAt": "2026-10-21T11:17:56.118Z"
+      },
+      {
+        "id": "activity-1792581474642",
+        "issueId": "QAR-101",
+        "action": "moved to In Progress",
+        "actor": "You",
+        "createdAt": "2026-10-21T11:17:54.642Z"
+      },
       {
         "id": "activity-1791873260469",
         "issueId": "QAR-106",
@@ -640,7 +675,9 @@
         "read": true
       }
     ],
-    "watchers": [],
-    "updatedAt": "2026-10-21T11:12:33.674Z"
+    "watchers": [
+      "REQ-102"
+    ],
+    "updatedAt": "2026-10-21T11:33:35.188Z"
   }
 }

@@ -4,14 +4,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Sci-Fi Glassmorphic palette
+        // Sci-Fi Glassmorphic palette mapped to jira keys for full compatibility
+        jira: {
+          bg: '#070B14',
+          sidebar: '#0A101E',
+          surface: '#101726',
+          'surface-2': '#172138',
+          'surface-3': '#23324F',
+          border: '#2B416C',
+          text: '#DDE5F2',
+          muted: '#8B97A9',
+          blue: '#00F0FF',
+          'blue-soft': '#00C2CF',
+          purple: '#8B5CF6',
+        },
         sci: {
           bg: '#070B14',
           surface: '#101726',
           'surface-2': '#172138',
           'surface-3': '#23324F',
-          border: '#3A5280',
-          text: '#D1D6DE',
+          border: '#2B416C',
+          text: '#DDE5F2',
           muted: '#8B97A9',
           cyan: '#00F0FF',
           blue: '#3B82F6',

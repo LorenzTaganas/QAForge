@@ -1,25 +1,23 @@
 const express = require('express')
 const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware')
-const { readQaStore, queueQaStoreWrite } = require('../data/qaStore')
+const { resolveProject, scopeProjects } = require('../middleware/projectMiddleware')
+const { mutateWorkspace, readAccessible, locateItem } = require('../data/workspaceStore')
 
 const router = express.Router()
 const allowedStatuses = ['Planned', 'Active', 'Completed']
-const getSnapshot = (store, userId) => store[userId] || {}
+const elevated = ['Admin', 'QA Lead', 'Project Manager']
 
 router.use(authMiddleware)
 
-router.get('/', async (req, res, next) => {
+router.get('/', scopeProjects, (req, res, next) => {
   try {
-    const snapshot = getSnapshot(await readQaStore(), req.user.id)
-    const sprints = Array.isArray(snapshot.sprints) ? snapshot.sprints : []
-    const projectKey = typeof req.query.projectKey === 'string' ? req.query.projectKey.toUpperCase() : null
-    return res.json({ success: true, sprints: projectKey ? sprints.filter((sprint) => (sprint.projectKey || 'QAR') === projectKey) : sprints })
+    return res.json({ success: true, sprints: readAccessible(req.projectKeys, ['sprints']).sprints })
   } catch (error) {
     return next(error)
   }
 })
 
-router.post('/', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.post('/', authorizeRoles(...elevated), resolveProject, (req, res, next) => {
   try {
     const body = req.body || {}
     if (typeof body.name !== 'string' || !body.name.trim()) {
@@ -29,68 +27,74 @@ router.post('/', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (r
       return res.status(400).json({ success: false, message: 'Sprint status is invalid.' })
     }
 
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const sprints = Array.isArray(snapshot.sprints) ? snapshot.sprints : []
-    const sprint = {
-      id: `SPRINT-${Date.now()}`,
-      name: body.name.trim(),
-      goal: typeof body.goal === 'string' ? body.goal.trim() : '',
-      status: body.status || 'Planned',
-      start: typeof body.start === 'string' ? body.start.trim() : '',
-      end: typeof body.end === 'string' ? body.end.trim() : '',
-      projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
-    }
-    store[req.user.id] = { ...snapshot, sprints: [sprint, ...sprints], updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const sprint = mutateWorkspace(req.projectKey, (data) => {
+      const created = {
+        id: `SPRINT-${Date.now()}`,
+        name: body.name.trim(),
+        goal: typeof body.goal === 'string' ? body.goal.trim() : '',
+        status: body.status || 'Planned',
+        start: typeof body.start === 'string' ? body.start.trim() : '',
+        end: typeof body.end === 'string' ? body.end.trim() : '',
+        projectKey: req.projectKey,
+      }
+      if (created.status === 'Active') {
+        data.sprints = data.sprints.map((sprint) => (sprint.status === 'Active' ? { ...sprint, status: 'Planned' } : sprint))
+      }
+      data.sprints.unshift(created)
+      return created
+    })
+
     return res.status(201).json({ success: true, sprint })
   } catch (error) {
     return next(error)
   }
 })
 
-router.patch('/:sprintId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.patch('/:sprintId', authorizeRoles(...elevated), (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const sprints = Array.isArray(snapshot.sprints) ? snapshot.sprints : []
-    const index = sprints.findIndex((sprint) => sprint.id === req.params.sprintId)
-    if (index === -1) return res.status(404).json({ success: false, message: 'Sprint not found.' })
+    const located = locateItem(req.user.projects, 'sprints', req.params.sprintId)
+    if (!located) return res.status(404).json({ success: false, message: 'Sprint not found.' })
 
     const updates = {}
-    for (const field of ['name', 'goal', 'start', 'end', 'projectKey']) {
+    for (const field of ['name', 'goal', 'start', 'end']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (req.body.status) {
       if (!allowedStatuses.includes(req.body.status)) return res.status(400).json({ success: false, message: 'Sprint status is invalid.' })
       updates.status = req.body.status
     }
-    sprints[index] = { ...sprints[index], ...updates }
-    if (updates.status === 'Active') {
-      for (let item = 0; item < sprints.length; item += 1) {
-        if (item !== index && sprints[item].projectKey === sprints[index].projectKey && sprints[item].status === 'Active') sprints[item] = { ...sprints[item], status: 'Planned' }
+
+    const sprint = mutateWorkspace(located.projectKey, (data) => {
+      const index = data.sprints.findIndex((item) => item.id === located.item.id)
+      if (index === -1) return null
+      if (updates.status === 'Active') {
+        data.sprints = data.sprints.map((item, itemIndex) => (
+          itemIndex !== index && item.status === 'Active' ? { ...item, status: 'Planned' } : item
+        ))
       }
-    }
-    store[req.user.id] = { ...snapshot, sprints, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
-    return res.json({ success: true, sprint: sprints[index] })
+      data.sprints[index] = { ...data.sprints[index], ...updates }
+      return data.sprints[index]
+    })
+
+    if (!sprint) return res.status(404).json({ success: false, message: 'Sprint not found.' })
+    return res.json({ success: true, sprint })
   } catch (error) {
     return next(error)
   }
 })
 
-router.delete('/:sprintId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.delete('/:sprintId', authorizeRoles(...elevated), (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const sprints = Array.isArray(snapshot.sprints) ? snapshot.sprints : []
-    const remaining = sprints.filter((sprint) => sprint.id !== req.params.sprintId)
-    if (remaining.length === sprints.length) return res.status(404).json({ success: false, message: 'Sprint not found.' })
-    const tasks = (Array.isArray(snapshot.tasks) ? snapshot.tasks : []).map((task) => (
-      task.sprintId === req.params.sprintId ? { ...task, sprintId: undefined } : task
-    ))
-    store[req.user.id] = { ...snapshot, sprints: remaining, tasks, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const located = locateItem(req.user.projects, 'sprints', req.params.sprintId)
+    if (!located) return res.status(404).json({ success: false, message: 'Sprint not found.' })
+
+    mutateWorkspace(located.projectKey, (data) => {
+      data.sprints = data.sprints.filter((sprint) => sprint.id !== located.item.id)
+      data.tasks = data.tasks.map((task) => (
+        task.sprintId === located.item.id ? { ...task, sprintId: undefined } : task
+      ))
+    })
+
     return res.json({ success: true })
   } catch (error) {
     return next(error)

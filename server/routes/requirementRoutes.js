@@ -1,32 +1,34 @@
 const express = require('express')
 const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware')
-const { readQaStore, queueQaStoreWrite } = require('../data/qaStore')
+const { resolveProject, scopeProjects } = require('../middleware/projectMiddleware')
+const { isMember } = require('../data/db')
+const {
+  mutateWorkspace,
+  nextNumber,
+  readAccessible,
+  locateItem,
+  moveItem,
+} = require('../data/workspaceStore')
 
 const router = express.Router()
-
-const getUserSnapshot = (store, userId) => store[userId] || {}
 const allowedStatuses = ['Draft', 'In Review', 'Approved', 'Implemented', 'Rejected']
 const allowedPriorities = ['Low', 'Medium', 'High', 'Critical']
 
+const normalizeLabels = (labels) => Array.isArray(labels)
+  ? labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean)
+  : []
+
 router.use(authMiddleware)
 
-router.get('/', async (req, res, next) => {
+router.get('/', scopeProjects, (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const requirements = getUserSnapshot(store, req.user.id).requirements || []
-    const projectKey = typeof req.query.projectKey === 'string' ? req.query.projectKey.toUpperCase() : null
-    return res.json({
-      success: true,
-      requirements: projectKey
-        ? requirements.filter((requirement) => (requirement.projectKey || 'QAR') === projectKey)
-        : requirements,
-    })
+    return res.json({ success: true, requirements: readAccessible(req.projectKeys, ['requirements']).requirements })
   } catch (error) {
     return next(error)
   }
 })
 
-router.post('/', async (req, res, next) => {
+router.post('/', resolveProject, (req, res, next) => {
   try {
     const body = req.body || {}
     if (typeof body.title !== 'string' || !body.title.trim()) {
@@ -39,67 +41,78 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Requirement priority is invalid.' })
     }
 
-    const store = await readQaStore()
-    const snapshot = getUserSnapshot(store, req.user.id)
-    const requirements = Array.isArray(snapshot.requirements) ? snapshot.requirements : []
-    const nextNumber = requirements.reduce((highest, requirement) => {
-      const match = /^REQ-(\d+)$/.exec(requirement.id || '')
-      return match ? Math.max(highest, Number(match[1])) : highest
-    }, 100) + 1
-    const requirement = {
-      id: `REQ-${nextNumber}`,
-      title: body.title.trim(),
-      description: typeof body.description === 'string' ? body.description.trim() : '',
-      acceptanceCriteria: typeof body.acceptanceCriteria === 'string' ? body.acceptanceCriteria.trim() : '',
-      owner: typeof body.owner === 'string' && body.owner.trim() ? body.owner.trim() : req.user.name,
-      priority: body.priority || 'Medium',
-      status: body.status || 'Draft',
-      projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
-      labels: Array.isArray(body.labels) ? body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean) : [],
-      linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
-    }
-    store[req.user.id] = { ...snapshot, requirements: [requirement, ...requirements], updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const requirement = mutateWorkspace(req.projectKey, (data) => {
+      const created = {
+        id: `REQ-${nextNumber('requirement')}`,
+        title: body.title.trim(),
+        description: typeof body.description === 'string' ? body.description.trim() : '',
+        acceptanceCriteria: typeof body.acceptanceCriteria === 'string' ? body.acceptanceCriteria.trim() : '',
+        owner: typeof body.owner === 'string' && body.owner.trim() ? body.owner.trim() : req.user.name,
+        priority: body.priority || 'Medium',
+        status: body.status || 'Draft',
+        projectKey: req.projectKey,
+        labels: normalizeLabels(body.labels),
+        linkedIssueIds: Array.isArray(body.linkedIssueIds) ? body.linkedIssueIds.filter((id) => typeof id === 'string') : [],
+      }
+      data.requirements.unshift(created)
+      return created
+    })
+
     return res.status(201).json({ success: true, requirement })
   } catch (error) {
     return next(error)
   }
 })
 
-router.patch('/:requirementId', async (req, res, next) => {
+router.patch('/:requirementId', (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getUserSnapshot(store, req.user.id)
-    const requirements = Array.isArray(snapshot.requirements) ? snapshot.requirements : []
-    const index = requirements.findIndex((requirement) => requirement.id === req.params.requirementId)
-    if (index === -1) return res.status(404).json({ success: false, message: 'Requirement not found.' })
+    const located = locateItem(req.user.projects, 'requirements', req.params.requirementId)
+    if (!located) return res.status(404).json({ success: false, message: 'Requirement not found.' })
 
     const updates = {}
-    for (const field of ['title', 'description', 'acceptanceCriteria', 'owner', 'projectKey']) {
+    for (const field of ['title', 'description', 'acceptanceCriteria', 'owner']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (req.body.status && allowedStatuses.includes(req.body.status)) updates.status = req.body.status
     if (req.body.priority && allowedPriorities.includes(req.body.priority)) updates.priority = req.body.priority
-    if (Array.isArray(req.body.labels)) updates.labels = req.body.labels.filter((label) => typeof label === 'string').map((label) => label.trim()).filter(Boolean)
+    if (Array.isArray(req.body.labels)) updates.labels = normalizeLabels(req.body.labels)
     if (Array.isArray(req.body.linkedIssueIds)) updates.linkedIssueIds = req.body.linkedIssueIds.filter((id) => typeof id === 'string')
-    requirements[index] = { ...requirements[index], ...updates }
-    store[req.user.id] = { ...snapshot, requirements, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
-    return res.json({ success: true, requirement: requirements[index] })
+
+    if (typeof req.body.projectKey === 'string' && req.body.projectKey.trim()) {
+      const targetKey = req.body.projectKey.trim().toUpperCase()
+      if (targetKey !== located.projectKey) {
+        if (!isMember(req.user.id, targetKey)) {
+          return res.status(403).json({ success: false, message: 'You are not a member of this project.' })
+        }
+        const requirement = moveItem(located.projectKey, 'requirements', located.item.id, targetKey, updates)
+        if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' })
+        return res.json({ success: true, requirement })
+      }
+    }
+
+    const requirement = mutateWorkspace(located.projectKey, (data) => {
+      const index = data.requirements.findIndex((item) => item.id === located.item.id)
+      if (index === -1) return null
+      data.requirements[index] = { ...data.requirements[index], ...updates }
+      return data.requirements[index]
+    })
+
+    if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' })
+    return res.json({ success: true, requirement })
   } catch (error) {
     return next(error)
   }
 })
 
-router.delete('/:requirementId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.delete('/:requirementId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getUserSnapshot(store, req.user.id)
-    const requirements = Array.isArray(snapshot.requirements) ? snapshot.requirements : []
-    const remaining = requirements.filter((requirement) => requirement.id !== req.params.requirementId)
-    if (remaining.length === requirements.length) return res.status(404).json({ success: false, message: 'Requirement not found.' })
-    store[req.user.id] = { ...snapshot, requirements: remaining, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const located = locateItem(req.user.projects, 'requirements', req.params.requirementId)
+    if (!located) return res.status(404).json({ success: false, message: 'Requirement not found.' })
+
+    mutateWorkspace(located.projectKey, (data) => {
+      data.requirements = data.requirements.filter((item) => item.id !== located.item.id)
+    })
+
     return res.json({ success: true })
   } catch (error) {
     return next(error)

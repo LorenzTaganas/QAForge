@@ -1,25 +1,23 @@
 const express = require('express')
 const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware')
-const { readQaStore, queueQaStoreWrite } = require('../data/qaStore')
+const { resolveProject, scopeProjects } = require('../middleware/projectMiddleware')
+const { mutateWorkspace, readAccessible, locateItem } = require('../data/workspaceStore')
 
 const router = express.Router()
 const allowedStatuses = ['To Do', 'In Progress', 'Done']
-const getSnapshot = (store, userId) => store[userId] || {}
+const elevated = ['Admin', 'QA Lead', 'Project Manager']
 
 router.use(authMiddleware)
 
-router.get('/', async (req, res, next) => {
+router.get('/', scopeProjects, (req, res, next) => {
   try {
-    const snapshot = getSnapshot(await readQaStore(), req.user.id)
-    const epics = Array.isArray(snapshot.epics) ? snapshot.epics : []
-    const projectKey = typeof req.query.projectKey === 'string' ? req.query.projectKey.toUpperCase() : null
-    return res.json({ success: true, epics: projectKey ? epics.filter((epic) => (epic.projectKey || 'QAR') === projectKey) : epics })
+    return res.json({ success: true, epics: readAccessible(req.projectKeys, ['epics']).epics })
   } catch (error) {
     return next(error)
   }
 })
 
-router.post('/', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.post('/', authorizeRoles(...elevated), resolveProject, (req, res, next) => {
   try {
     const body = req.body || {}
     if (typeof body.title !== 'string' || !body.title.trim()) {
@@ -29,62 +27,65 @@ router.post('/', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (r
       return res.status(400).json({ success: false, message: 'Epic status is invalid.' })
     }
 
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const epics = Array.isArray(snapshot.epics) ? snapshot.epics : []
-    const epic = {
-      id: `EPIC-${Date.now()}`,
-      title: body.title.trim(),
-      status: body.status || 'To Do',
-      owner: typeof body.owner === 'string' ? body.owner.trim() : req.user.name,
-      projectKey: typeof body.projectKey === 'string' && body.projectKey.trim() ? body.projectKey.trim().toUpperCase() : 'QAR',
-      color: typeof body.color === 'string' && body.color.trim() ? body.color.trim() : '#4B8DFF',
-    }
-    store[req.user.id] = { ...snapshot, epics: [epic, ...epics], updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const epic = mutateWorkspace(req.projectKey, (data) => {
+      const created = {
+        id: `EPIC-${Date.now()}`,
+        title: body.title.trim(),
+        status: body.status || 'To Do',
+        owner: typeof body.owner === 'string' ? body.owner.trim() : req.user.name,
+        projectKey: req.projectKey,
+        color: typeof body.color === 'string' && body.color.trim() ? body.color.trim() : '#4B8DFF',
+      }
+      data.epics.unshift(created)
+      return created
+    })
+
     return res.status(201).json({ success: true, epic })
   } catch (error) {
     return next(error)
   }
 })
 
-router.patch('/:epicId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.patch('/:epicId', authorizeRoles(...elevated), (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const epics = Array.isArray(snapshot.epics) ? snapshot.epics : []
-    const index = epics.findIndex((epic) => epic.id === req.params.epicId)
-    if (index === -1) return res.status(404).json({ success: false, message: 'Epic not found.' })
+    const located = locateItem(req.user.projects, 'epics', req.params.epicId)
+    if (!located) return res.status(404).json({ success: false, message: 'Epic not found.' })
 
     const updates = {}
-    for (const field of ['title', 'owner', 'projectKey', 'color']) {
+    for (const field of ['title', 'owner', 'color']) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim()
     }
     if (req.body.status) {
       if (!allowedStatuses.includes(req.body.status)) return res.status(400).json({ success: false, message: 'Epic status is invalid.' })
       updates.status = req.body.status
     }
-    epics[index] = { ...epics[index], ...updates }
-    store[req.user.id] = { ...snapshot, epics, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
-    return res.json({ success: true, epic: epics[index] })
+
+    const epic = mutateWorkspace(located.projectKey, (data) => {
+      const index = data.epics.findIndex((item) => item.id === located.item.id)
+      if (index === -1) return null
+      data.epics[index] = { ...data.epics[index], ...updates }
+      return data.epics[index]
+    })
+
+    if (!epic) return res.status(404).json({ success: false, message: 'Epic not found.' })
+    return res.json({ success: true, epic })
   } catch (error) {
     return next(error)
   }
 })
 
-router.delete('/:epicId', authorizeRoles('Admin', 'QA Lead', 'Project Manager'), async (req, res, next) => {
+router.delete('/:epicId', authorizeRoles(...elevated), (req, res, next) => {
   try {
-    const store = await readQaStore()
-    const snapshot = getSnapshot(store, req.user.id)
-    const epics = Array.isArray(snapshot.epics) ? snapshot.epics : []
-    const remaining = epics.filter((epic) => epic.id !== req.params.epicId)
-    if (remaining.length === epics.length) return res.status(404).json({ success: false, message: 'Epic not found.' })
-    const tasks = (Array.isArray(snapshot.tasks) ? snapshot.tasks : []).map((task) => (
-      task.epicId === req.params.epicId ? { ...task, epicId: undefined } : task
-    ))
-    store[req.user.id] = { ...snapshot, epics: remaining, tasks, updatedAt: new Date().toISOString() }
-    await queueQaStoreWrite(store)
+    const located = locateItem(req.user.projects, 'epics', req.params.epicId)
+    if (!located) return res.status(404).json({ success: false, message: 'Epic not found.' })
+
+    mutateWorkspace(located.projectKey, (data) => {
+      data.epics = data.epics.filter((epic) => epic.id !== located.item.id)
+      data.tasks = data.tasks.map((task) => (
+        task.epicId === located.item.id ? { ...task, epicId: undefined } : task
+      ))
+    })
+
     return res.json({ success: true })
   } catch (error) {
     return next(error)

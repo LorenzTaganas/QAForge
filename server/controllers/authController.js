@@ -1,6 +1,5 @@
-const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const users = require('../data/users')
+const { findUserByEmail, toPublicUser, getUserState, verifyPassword } = require('../data/db')
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -25,16 +24,16 @@ const loginUser = async (req, res) => {
     })
   }
 
-  const user = users.find((item) => item.email.toLowerCase() === String(email).toLowerCase())
+  const user = findUserByEmail(email)
 
-  if (!user) {
+  if (!user || !user.is_active) {
     return res.status(401).json({
       success: false,
       message: 'Invalid email or password.',
     })
   }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password)
+  const isPasswordValid = await verifyPassword(user, password)
 
   if (!isPasswordValid) {
     return res.status(401).json({
@@ -44,17 +43,13 @@ const loginUser = async (req, res) => {
   }
 
   const token = generateToken(user)
+  const state = getUserState(user.id)
+  const publicUser = { ...toPublicUser(user), selectedProjectKey: state.selectedProjectKey }
 
   return res.status(200).json({
     success: true,
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      projects: user.projects,
-    },
+    user: publicUser,
   })
 }
 

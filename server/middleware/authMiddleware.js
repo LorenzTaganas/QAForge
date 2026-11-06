@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const users = require('../data/users')
+const { findUserById, toPublicUser, getUserState } = require('../data/db')
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization
@@ -15,20 +15,19 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key')
-    const loggedInUser = users.find((user) => user.id === decoded.id)
+    const row = findUserById(decoded.id)
 
-    if (!loggedInUser) {
+    if (!row || !row.is_active) {
       return res.status(401).json({
         success: false,
         message: 'User session is invalid.',
       })
     }
 
+    const state = getUserState(row.id)
     req.user = {
-      id: loggedInUser.id,
-      name: loggedInUser.name,
-      email: loggedInUser.email,
-      role: loggedInUser.role,
+      ...toPublicUser(row),
+      selectedProjectKey: state.selectedProjectKey,
     }
 
     next()
